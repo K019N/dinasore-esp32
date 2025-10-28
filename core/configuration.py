@@ -1,9 +1,7 @@
 from core import fb_resources
 from core import fb
 from core import fb_interface
-from xml.etree import ElementTree as ETree
-import logging
-import inspect
+from core import fb_interface, logging
 
 
 class Configuration:
@@ -45,7 +43,12 @@ class Configuration:
         if fb_definition is not None:
             # Checking order and number or arguments of schedule function
             # Logs warning if order and number are not the same 
-            schedule_args = inspect.getfullargspec(fb_obj.schedule).args
+            schedule_code = fb_obj.schedule.__code__
+            schedule_args = schedule_code.co_varnames[:schedule_code.co_argcount]
+
+            if schedule_args and schedule_args[0] == 'self':
+                schedule_args = schedule_args[1:]
+                
             if len(schedule_args) > 3:
                 schedule_args = schedule_args[3:]
                 schedule_args = [i.lower() for i in schedule_args]

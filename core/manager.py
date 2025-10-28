@@ -1,12 +1,9 @@
-from core import configuration
-from xml.etree import ElementTree as ETree
+from core import fb_interface, logging, configuration
 import time
 import struct
-import logging
 import gc
 import os
 import sys
-import shutil
 import re
 
 
@@ -20,7 +17,7 @@ class Manager:
         # stores the requests structure
         self.requests = []
         self.write_fboot = False
-        self.fboot_path = os.path.join(os.path.dirname(sys.path[0]), 'resources', 'data_model.fboot')
+        self.fboot_path = '/dinasore/resources/data_model.fboot'
 
     def get_config(self, config_id):
         fb_element = None
@@ -128,8 +125,11 @@ class Manager:
             # reset the program
             resources_path = os.path.join(os.path.dirname(sys.path[0]), 'resources')
             os.remove(os.path.join(resources_path, 'data_model.fboot'))
-            shutil.copyfile(os.path.join(resources_path, 'data_model_copy.fboot'),
-                            os.path.join(resources_path, 'data_model.fboot'))
+            src = os.path.join(resources_path, 'data_model_copy.fboot')
+            dst = os.path.join(resources_path, 'data_model.fboot')
+
+            with open(src, 'rb') as f_src, open(dst, 'wb') as f_dst:
+                f_dst.write(f_src.read())
 
         response = self.build_response(request_id, xml)
         return response
@@ -223,7 +223,7 @@ class Manager:
         except FileNotFoundError:
             logging.warning('Could not find fboot definition file. Awaiting deployment.')
         else:
-            if os.stat(self.fboot_path).st_size == 0:
+            if os.stat(self.fboot_path)[6] == 0:  # index 6 is st_size
                 logging.warning('Fboot definition file is empty. Awaiting deployment')
             else:
                 try:

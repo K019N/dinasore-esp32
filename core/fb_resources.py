@@ -1,8 +1,7 @@
-import importlib
 import os
 import sys
-import xml.etree.ElementTree as ETree
-import logging
+from custom_parser.xml import ElementTree as ETree
+import core.logging
 
 
 class FBResources:
@@ -28,20 +27,29 @@ class FBResources:
         fb_obj = None
 
         try:
-            # Import method from python file
-            py_fb = importlib.import_module('.' + self.fb_type, package='resources.function_blocks')
+            module_name = 'resources.function_blocks.' + self.fb_type
+            
+            module = __import__(module_name, fromlist=[self.fb_type])
+            # module = __import__('resources.function_blocks.' + self.fb_type, fromlist=['*'])
+            
             # Gets the running fb method
-            fb_class = getattr(py_fb, self.fb_type)
+            fb_class = getattr(module, self.fb_type)
             # Instance the fb class
             fb_obj = fb_class()
-            # Reads the xml
-            tree = ETree.parse(self.fbt_path)
-            # Gets the root element
-            root = tree.getroot()
+            
+            # Reads the xml - используем встроенный парсер MicroPython
+            try:
+                import xml.etree.ElementTree as ETree
+                tree = ETree.parse(self.fbt_path)
+                root = tree.getroot()
+            except ImportError:
+                print("no xml")
 
-        except ModuleNotFoundError as error:
+        except ImportError as error:
             logging.error('can not import the module (check fb_type.py nomenclature)')
             logging.error(error)
+            # Дополнительная отладочная информация
+            logging.error('Module path: resources.function_blocks.{}'.format(self.fb_type))
 
         except AttributeError as error:
             logging.error('can not find the fb method declaration (check if fb_type.py = def fb_type(...):)')

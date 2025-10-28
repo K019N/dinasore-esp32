@@ -1,8 +1,33 @@
-import threading
+import _thread
 from collections import OrderedDict
-from xml.etree import ElementTree as ETree
-import logging
+from core import fb_interface, logging
 import time
+
+
+class MicroEvent:
+    def __init__(self):
+        self._flag = False
+        self._lock = _thread.allocate_lock()
+    
+    def set(self):
+        with self._lock:
+            self._flag = True
+    
+    def clear(self):
+        with self._lock:
+            self._flag = False
+    
+    def is_set(self):
+        with self._lock:
+            return self._flag
+    
+    def wait(self, timeout=None):
+        start = time.time()
+        while not self.is_set():
+            if timeout is not None and (time.time() - start) > timeout:
+                return False
+            time.sleep(0.01)
+        return True
 
 
 class FBInterface:
@@ -83,9 +108,9 @@ class FBInterface:
         logging.info('output vars: {0}'.format(self.output_vars))
 
         self.output_connections = dict()
-        self.new_event = threading.Event()
-        self.lock = threading.Lock()
-
+        self.new_event = MicroEvent()  
+        self.lock = _thread.allocate_lock()
+        
     def set_attr(self, name, new_value=None, set_watch=None):
         # Locks the dictionary usage
         self.lock.acquire()
@@ -190,8 +215,9 @@ class FBInterface:
     def pop_event(self):
         if len(self.event_queue) > 0:
             # pop event
-            event_name, event_value = self.event_queue.pop()
+            event_name, event_value = self.event_queue.pop(0)  # Используем pop(0) для FIFO
             return event_name, event_value
+        return None, None
 
     def wait_event(self):
         while len(self.event_queue) <= 0:
@@ -207,9 +233,10 @@ class FBInterface:
         # First convert the vars dictionary to a list
         events_list = []
         event_name, event_value = self.pop_event()
-        self.set_attr(event_name, new_value=event_value)
-        events_list.append(event_name)
-        events_list.append(event_value)
+        if event_name is not None:
+            self.set_attr(event_name, new_value=event_value)
+            events_list.append(event_name)
+            events_list.append(event_value)
 
         # Second converts the event dictionary to a list
         vars_list = []
@@ -254,7 +281,9 @@ class FBInterface:
         fb_root = ETree.Element('FB', {'name': self.fb_name})
 
         # Mixes the vars in 1 dictionary
-        var_mix = {**self.input_vars, **self.output_vars}
+        var_mix = {}
+        var_mix.update(self.input_vars)
+        var_mix.update(self.output_vars)
         # Iterates over the mix dictionary
         for index, var_name in enumerate(var_mix):
             v_type, value, is_watch = self.read_attr(var_name)
@@ -265,7 +294,9 @@ class FBInterface:
                 fb_root.append(port)
 
         # Mixes the vars in 1 dictionary
-        event_mix = {**self.input_events, **self.output_events}
+        event_mix = {}
+        event_mix.update(self.input_events)
+        event_mix.update(self.output_events)
         # Iterates over the mix dictionary
         for index, event_name in enumerate(event_mix):
             v_type, value, is_watch = self.read_attr(event_name)

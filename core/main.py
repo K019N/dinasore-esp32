@@ -1,12 +1,54 @@
-import logging
 import os
 import sys
-import argparse
 
-sys.path.append(os.path.join(os.path.dirname(sys.path[0])))
 
+try:
+    current_path = sys.path[0] if sys.path else ''
+    new_path = os.path.join(os.path.dirname(current_path)) if current_path else '/dinasore'
+    
+    # Проверяем, что путь не пустой и не добавляем дубликаты
+    if new_path and new_path not in sys.path:
+        sys.path.append(new_path)
+        print("Добавлен путь:", new_path)
+    else:
+        print("Путь уже существует или пустой")
+        
+except Exception as e:
+    print("Ошибка при добавлении пути:", e)
+
+
+from core import logging
 from communication import tcp_server
 from core import manager
+
+
+def parse_arguments():
+    defaults = {
+        'address': 'localhost',
+        'port_diac': 61499,
+        'log_level': 'ERROR'
+    }
+    args = sys.argv[1:]
+    
+    i = 0
+    while i < len(args):
+        if args[i] == '-a' and i + 1 < len(args):
+            defaults['address'] = args[i + 1]
+            i += 2
+        elif args[i] == '-p' and i + 1 < len(args):
+            try:
+                defaults['port_diac'] = int(args[i + 1])
+            except ValueError:
+                print(f"Port value must be numeric: {args[i + 1]}")
+            i += 2
+        elif args[i] == '-l' and i + 1 < len(args):
+            defaults['log_level'] = args[i + 1]
+            i += 2
+        else:
+            print(f"Unknown arg: {args[i]}")
+            i += 1
+    
+    return defaults
 
 if __name__ == "__main__":
     log_levels = {'ERROR': logging.ERROR,
@@ -32,24 +74,18 @@ if __name__ == "__main__":
                    "                  INFO, WARN or ERROR (default: ERROR)"
 
     # build parser for application command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-a', metavar='address', nargs=1, help="ip address to bind at (default: localhost)")
-    parser.add_argument('-p', metavar='port_diac', nargs=1, type=int, help="port for the 4diac communication "
-                                                                           "(default: 61499)")
-    parser.add_argument('-l', metavar='log_level', nargs=1,  help="logging level at the file resources/error_list.log, "
-                                                                  "e.g. INFO, WARN or ERROR (default: ERROR)")
-    # ---------------------
+    args = parse_arguments()
 
-    args = parser.parse_args()
-
-    if args.a != None: address = args.a[0]
-    if args.p != None: port_diac = args.p[0]
-    if args.l != None: log_level = log_levels[args.l[0]]
+    if args['address'] != None: address = args['address']
+    if args['port_diac'] != None: port_diac = args['port_diac']
+    if args['log_level'] != None: log_level = log_levels[args['log_level']]
 
     # Configure the logging output
-    log_path = os.path.join(os.path.dirname(sys.path[0]), 'resources', 'error_list.log')
-    if os.path.isfile(log_path):
+    log_path = '/dinasore/resources/error_list.log'
+    try:
         os.remove(log_path)
+    except:
+        pass
     logging.basicConfig(filename=log_path,
                         level=log_level,
                         format='[%(asctime)s][%(levelname)s][%(threadName)s] %(message)s')
