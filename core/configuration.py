@@ -17,7 +17,7 @@ class Configuration:
             fb_element = self.fb_dictionary[fb_name]
         except KeyError as error:
             logging.error('can not find that fb {0}'.format(fb_name))
-            logging.error(error)
+            logging.error(str(error))
 
         return fb_element
 
@@ -117,7 +117,7 @@ class Configuration:
             source_fb.set_attr(source_name, set_watch=True)
         except AttributeError as error:
             # check if the return if None
-            logging.error(error)
+            logging.error(str(error))
             logging.error("don't forget to delete the watch when you delete a function block")
 
         logging.info('watch created between {0} and {1}'.format(source, destination))
@@ -133,14 +133,15 @@ class Configuration:
             source_fb.set_attr(source_name, set_watch=False)
         except AttributeError as error:
             # check if the return if None
-            logging.error(error)
+            logging.error(str(error))
             logging.error("don't forget to delete the watch when you delete a function block")
 
         logging.info('watch deleted between {0} and {1}'.format(source, destination))
 
     def write_connection(self, source_value, destination):
         logging.info('writing a connection...')
-        destination_attr = destination.split(sep='.')
+        print("source: ", source_value, "dest: ", destination)
+        destination_attr = destination.split('.')
         destination_fb = self.get_fb(destination_attr[0])
         destination_name = destination_attr[1]
 

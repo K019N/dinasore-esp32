@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE FBType SYSTEM "http://www.holobloc.com/xml/LibraryElement.dtd">
+<FBType Name="OUT_ANY_CONSOLE" OpcUa="SERVICE">
+    <InterfaceList>
+        <EventInputs>
+            <Event Name="REQ" Type="Event"/>
+        </EventInputs>
+        <EventOutputs>
+            <Event Name="CNF" Type="Event"/>
+        </EventOutputs>
+        <InputVars>
+            <VarDeclaration Name="QI" Type="BOOL"/>
+            <VarDeclaration Name="LABEL" Type="STRING"/>
+            <VarDeclaration Name="IN" Type="ANY"/>
+        </InputVars>
+        <OutputVars>
+            <VarDeclaration Name="QO" Type="REAL"/>
+        </OutputVars>
+    </InterfaceList>
+</FBType>

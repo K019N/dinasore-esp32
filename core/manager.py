@@ -5,6 +5,7 @@ import gc
 import os
 import sys
 import re
+from custom_parser.xml import ElementTree as ETree
 
 
 class Manager:
@@ -22,14 +23,18 @@ class Manager:
     def get_config(self, config_id):
         fb_element = None
         try:
+            print(self.config_dictionary)
+            print(config_id)
             fb_element = self.config_dictionary[config_id]
         except KeyError as error:
             logging.error('can not find that configuration (4DIAC resource)')
-            logging.error(error)
+            logging.error(str(error))
         return fb_element
 
     def set_config(self, config_id, config_element):
+        print("setting config...")
         self.config_dictionary[config_id] = config_element
+        print(self.config_dictionary)
 
     def store_request(self, req, config_id=None):
         # converts the type
@@ -52,14 +57,17 @@ class Manager:
         action = element.attrib['Action']
         request_id = element.attrib['ID']
         xml = None
-
+        
+        print("action: ", action)
         if action == 'CREATE':
             # Iterate over the list of children
-            for child in element:
+            print(element.children , element)
+            for child in element.children:
                 # Create configuration (function block)
                 if child.tag == 'FB':
-                    conf_name = child.attrib['Name']
-                    conf_type = child.attrib['Type']
+                    fb = ETree.fromstring(child)
+                    conf_name = fb.attrib['Name']
+                    conf_type = fb.attrib['Type']
                     # Stops the configuration
                     for config_name, config in self.config_dictionary.items():
                         config.stop_work()
@@ -76,7 +84,7 @@ class Manager:
 
         elif action == 'READ':
             # Iterate over the list of children
-            for child in element:
+            for child in element.children:
                 # Reads values from a watch
                 if child.tag == 'Watches':
                     xml = ETree.Element('Watches')
@@ -94,7 +102,7 @@ class Manager:
 
         elif action == 'KILL':
             # Iterate over the list of children
-            for child in element:
+            for child in element.children:
                 # Kill a configuration (could be a fb)
                 if child.tag == 'FB':
                     fb_name = child.attrib['Name']
@@ -111,7 +119,7 @@ class Manager:
 
         elif action == 'DELETE':
             # Iterate over the list of children
-            for child in element:
+            for child in element.children:
                 # Deletes a configuration (could be a fb)
                 if child.tag == 'FB':
                     # conf_name = child.attrib['Name']
@@ -144,11 +152,21 @@ class Manager:
 
         if action == 'CREATE':
             # Iterate over the list of children
-            for child in element:
+            for child in element.children:
                 # Create function block
                 if child.tag == 'FB':
-                    fb_name = child.attrib['Name']
-                    fb_type = child.attrib['Type']
+                    fb = ETree.fromstring(child)
+                    fb_name = fb.attrib['Name']
+                    fb_type = fb.attrib['Type']
+                    
+                    
+                    if fb_name not in self.config_dictionary:
+                        # Creates the configuration
+                        config = configuration.Configuration(fb_name, fb_type)
+                        self.write_fboot = True
+                        self.set_config(fb_name, config)
+                        self.store_request(xml_data)
+                    
                     self.get_config(config_id).create_fb(fb_name, fb_type)
                     self.store_request(xml_data, config_id)
 
@@ -167,11 +185,12 @@ class Manager:
 
         elif action == 'DELETE':
             # Iterate over the list of children
-            for child in element:
+            for child in element.children:
                 # Delete watch
                 if child.tag == 'Watch':
-                    watch_source = child.attrib['Source']
-                    watch_destination = child.attrib['Destination']
+                    watch = ETree.fromstring(child)
+                    watch_source = watch.attrib['Source']
+                    watch_destination = watch.attrib['Destination']
                     self.get_config(config_id).delete_watch(watch_source, watch_destination)
 
         elif action == 'START':
@@ -185,11 +204,13 @@ class Manager:
         
         elif action == 'WRITE':
             # Iterate over the list of children
-            for child in element:
+            for child in element.children:
                 # Write a connection with value
                 if child.tag == 'Connection':
-                    connection_source = child.attrib['Source']
-                    connection_destination = child.attrib['Destination']
+                    conn = ETree.fromstring(child)
+                    connection_source = conn.attrib['Source']
+                    connection_destination = conn.attrib['Destination']
+                    print("source: ", connection_source, "dest: ", connection_destination)
                     self.get_config(config_id).write_connection(connection_source, connection_destination)
                     self.store_request(xml_data, config_id)
 
@@ -203,7 +224,7 @@ class Manager:
         if xml_response is not None:
             xml.append(xml_response)
 
-        response_xml = ETree.tostring(xml)
+        response_xml = ETree.tostring(xml).encode('utf-8')
         hex_input = '{:04x}'.format(len(response_xml))
         second_byte = int(hex_input[0:2], 16)
         third_byte = int(hex_input[2:4], 16)
@@ -231,6 +252,7 @@ class Manager:
                     lines = file.readlines()
                     file.close()
                     self.parse_fboot(lines)
+                    print(3)
                 except self.InvalidFbootState:
                     logging.error('Fboot definition file is in an invalid state. Awaiting deployment')
 
@@ -241,6 +263,7 @@ class Manager:
             if len(chunks) != 2:
                 raise self.InvalidFbootState
             # checks if is the msg to create config
+            print("fboot parsing ...")
             if chunks[0] == '':
                 self.parse_general(chunks[1])
             # checks if is to create fb or connection

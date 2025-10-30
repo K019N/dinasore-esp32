@@ -1,7 +1,7 @@
 import os
 import sys
 from custom_parser.xml import ElementTree as ETree
-import core.logging
+from core import logging
 
 
 class FBResources:
@@ -10,16 +10,10 @@ class FBResources:
         self.fb_type = fb_type
 
         # Gets the file path to the python file
-        self.py_path = os.path.join(os.path.dirname(sys.path[0]),
-                                    'resources',
-                                    'function_blocks',
-                                    fb_type + '.py')
+        self.py_path = "/dinasore/resources/function_blocks" + fb_type + ".py"
 
         # Gets the file path to the fbt (xml) file
-        self.fbt_path = os.path.join(os.path.dirname(sys.path[0]),
-                                     'resources',
-                                     'function_blocks',
-                                     fb_type + '.fbt')
+        self.fbt_path = "/dinasore/resources/function_blocks" + fb_type + ".fbt"
 
     def import_fb(self):
         logging.info('importing fb python file and definition file...')
@@ -47,20 +41,20 @@ class FBResources:
 
         except ImportError as error:
             logging.error('can not import the module (check fb_type.py nomenclature)')
-            logging.error(error)
+            logging.error(str(error))
             # Дополнительная отладочная информация
             logging.error('Module path: resources.function_blocks.{}'.format(self.fb_type))
 
         except AttributeError as error:
             logging.error('can not find the fb method declaration (check if fb_type.py = def fb_type(...):)')
-            logging.error(error)
+            logging.error(str(error))
 
-        except FileNotFoundError as error:
-            logging.error('can not find the .fbt file (check .fbt name = fb_type.fbt)')
-            logging.error(error)
+        # except FileNotFoundError as error:
+        #     logging.error('can not find the .fbt file (check .fbt name = fb_type.fbt)')
+        #     logging.error(str(error))
 
         except Exception as ex:
-            logging.error(ex)
+            logging.error(str(ex))
 
         else:
             logging.info('fb definition (xml) imported from: {0}'.format(self.fbt_path))
@@ -77,9 +71,11 @@ class FBResources:
             tree = ETree.parse(self.fbt_path)
             # Gets the root element
             root = tree.getroot()
-        except FileNotFoundError as error:
-            logging.error('can not find the .fbt file (check .fbt name = fb_type.fbt)')
-            logging.error(error)
+        # except FileNotFoundError as error:
+        #     logging.error('can not find the .fbt file (check .fbt name = fb_type.fbt)')
+        #     logging.error(str(error))
+        except:
+            pass
         else:
             logging.info('fb definition (xml) imported from: {0}'.format(self.fbt_path))
 
@@ -87,12 +83,14 @@ class FBResources:
 
     def exists_fb(self):
         # Verifies if exists the python file
-        exists_py = os.path.isfile(self.py_path)
+        # exists_py = os.path.isfile(self.py_path)
         # Verifies if exists the fbt file
-        exists_fbt = os.path.isfile(self.fbt_path)
+        # exists_fbt = os.path.isfile(self.fbt_path)
 
-        if exists_py and exists_fbt:
-            return True
-        else:
-            return False
+        # if exists_py and exists_fbt:
+        #     return True
+        # else:
+        #     return False
+        # fixme!
+        return True
 

@@ -1,52 +1,64 @@
+# simple_xml.py
 class XMLParser:
     def __init__(self):
         self.root = None
         self.current = None
-        self.stack = []
+        self.stack = []  # Стек для хранения открытых элементов
     
     def feed(self, data):
         i = 0
+        data = data.strip()
         while i < len(data):
             if data[i] == '<':
+                # Найден тег
                 i += 1
-                if data[i] == '/':
+                if i < len(data) and data[i] == '/':
+                    # Закрывающий тег
                     i += 1
                     end = data.find('>', i)
                     if end != -1:
                         tag_name = data[i:end].strip()
-                        if self.stack:
+                        # Проверяем, что стек не пуст и тег соответствует
+                        if self.stack and self.stack[-1].tag == tag_name:
                             self.current = self.stack.pop()
                         i = end + 1
                 else:
+                    # Открывающий тег
                     end = data.find('>', i)
                     if end != -1:
                         tag_text = data[i:end]
+                        # Проверяем на самозакрывающийся тег
                         if tag_text.endswith('/'):
                             tag_text = tag_text[:-1].strip()
-                            tag_parts = tag_text.split()
-                            tag_name = tag_parts[0]
-                            attribs = self._parse_attributes(tag_parts[1:])
-                            
-                            element = Element(tag_name, attribs)
-                            if self.current:
-                                self.current.children.append(element)
-                            elif not self.root:
-                                self.root = element
+                            self_closure = True
                         else:
-                            tag_parts = tag_text.split()
+                            self_closure = False
+
+                        # Разбираем имя тега и атрибуты
+                        tag_parts = tag_text.split()
+                        if tag_parts:
                             tag_name = tag_parts[0]
                             attribs = self._parse_attributes(tag_parts[1:])
                             
                             element = Element(tag_name, attribs)
+                            
                             if not self.root:
                                 self.root = element
+                            
+                            # Добавляем к текущему родителю, если он есть
                             if self.current:
                                 self.current.children.append(element)
                             
-                            self.stack.append(self.current)
-                            self.current = element
+                            if not self_closure:
+                                # Добавляем текущий элемент в стек и делаем его текущим
+                                self.stack.append(element)
+                                self.current = element
+                            else:
+                                # Самозакрывающийся тег - не добавляем в стек
+                                pass
                         i = end + 1
             else:
+                # Текст
                 end = data.find('<', i)
                 if end != -1:
                     text = data[i:end].strip()
@@ -57,23 +69,43 @@ class XMLParser:
                     break
     
     def _parse_attributes(self, attrib_parts):
+        """Парсит атрибуты вида key="value" или key='value'"""
         attribs = {}
+        current_attr = ''
         for part in attrib_parts:
-            if '=' in part:
-                key, value = part.split('=', 1)
-                value = value.strip('"\'').strip()
+            current_attr += ' ' + part
+            # Проверяем, есть ли закрывающая кавычка
+            if current_attr.count('"') % 2 == 0 or current_attr.count("'") % 2 == 0:
+                parts = current_attr.strip().split('=', 1)
+                if len(parts) == 2:
+                    key = parts[0].strip()
+                    value = parts[1].strip().strip('"\'')
+                    attribs[key] = value
+                current_attr = ''
+        
+        # Обрабатываем оставшиеся атрибуты
+        if current_attr.strip():
+            parts = current_attr.strip().split('=', 1)
+            if len(parts) == 2:
+                key = parts[0].strip()
+                value = parts[1].strip().strip('"\'')
                 attribs[key] = value
+        
         return attribs
     
     def close(self):
         return self.root
 
-class Element:
+class ElementClass:
     def __init__(self, tag, attrib=None):
         self.tag = tag
         self.attrib = attrib or {}
         self.text = None
         self.children = []
+        
+    def __iter__(self):
+        """Для итерации по дочерним элементам"""
+        return iter(self.children)
     
     def find(self, tag):
         for child in self.children:
@@ -92,9 +124,12 @@ class Element:
     
     def get(self, key, default=None):
         return self.attrib.get(key, default)
+    
+    def set(self, key, value):
+        self.attrib[key] = value
 
 def Element(tag, attrib=None):
-    return Element(tag, attrib or {})
+    return ElementClass(tag, attrib or {})
 
 def SubElement(parent, tag, attrib=None):
     element = Element(tag, attrib)
@@ -102,14 +137,38 @@ def SubElement(parent, tag, attrib=None):
     return element
 
 def fromstring(text):
+    # Проверяем тип входных данных
+    if text is None:
+        raise ValueError("None passed to fromstring")
+    
+    # Если это уже Element, просто возвращаем
+    if hasattr(text, 'tag') and hasattr(text, 'attrib'):
+        return text
+    
+    # Преобразуем в строку если это байты или другой тип
+    if isinstance(text, bytes):
+        text = text.decode('utf-8')
+    elif not isinstance(text, str):
+        text = str(text)
+    
+    if not text.strip():
+        raise ValueError("Empty XML string")
+    
     parser = XMLParser()
     parser.feed(text)
-    return parser.close()
+    result = parser.close()
+    
+    if result is None:
+        raise ValueError(f"Could not parse XML: {text[:100]}...")  # Ограничим вывод
+    
+    return result
 
 def parse(file_or_path):
     if hasattr(file_or_path, 'read'):
+        # Это файловый объект
         content = file_or_path.read()
     else:
+        # Это путь к файлу
         with open(file_or_path, 'r') as f:
             content = f.read()
     
@@ -127,7 +186,10 @@ def tostring(element, encoding='unicode'):
         if elem.text or elem.children:
             result.append('>')
             if elem.text:
-                result.append(elem.text.strip())
+                # Экранируем специальные XML символы в тексте
+                text = elem.text
+                text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                result.append(text)
             
             if elem.children:
                 result.append('\n')
@@ -143,6 +205,7 @@ def tostring(element, encoding='unicode'):
     
     return _to_string(element).strip()
 
+# Псевдоним для совместимости
 ElementTree = type('ETree', (), {
     'Element': Element,
     'SubElement': SubElement,
