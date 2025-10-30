@@ -32,9 +32,7 @@ class Manager:
         return fb_element
 
     def set_config(self, config_id, config_element):
-        print("setting config...")
         self.config_dictionary[config_id] = config_element
-        print(self.config_dictionary)
 
     def store_request(self, req, config_id=None):
         # converts the type
@@ -58,10 +56,8 @@ class Manager:
         request_id = element.attrib['ID']
         xml = None
         
-        print("action: ", action)
         if action == 'CREATE':
             # Iterate over the list of children
-            print(element.children , element)
             for child in element.children:
                 # Create configuration (function block)
                 if child.tag == 'FB':
@@ -71,7 +67,7 @@ class Manager:
                     # Stops the configuration
                     for config_name, config in self.config_dictionary.items():
                         config.stop_work()
-                    self.config_dictionary = dict()
+                    # self.config_dictionary = dict()
                     if conf_name not in self.config_dictionary:
                         # Creates the configuration
                         config = configuration.Configuration(conf_name, conf_type)
@@ -213,15 +209,12 @@ class Manager:
         
         elif action == 'WRITE':
             # Iterate over the list of children
-            print("ELEMET TEXT: ", element.text)
             for child in element.children:
                 # Write a connection with value
                 if child.tag == 'Connection':
                     conn = child
-                    print("conn info: ", conn)
                     connection_source = conn.attrib['Source']
                     connection_destination = conn.attrib['Destination']
-                    print("source: ", connection_source, "dest: ", connection_destination)
                     if not self.get_config(config_id):
                         logging.error("Config not exists while WRITE")
                         continue
@@ -266,7 +259,6 @@ class Manager:
                     lines = file.readlines()
                     file.close()
                     self.parse_fboot(lines)
-                    print(3)
                 except self.InvalidFbootState:
                     logging.error('Fboot definition file is in an invalid state. Awaiting deployment')
 
@@ -275,9 +267,9 @@ class Manager:
             # splits the line
             chunks = line.split(';')
             if len(chunks) != 2:
+                print(chunks)
                 raise self.InvalidFbootState
             # checks if is the msg to create config
-            print("fboot parsing ...")
             if chunks[0] == '':
                 self.parse_general(chunks[1])
             # checks if is to create fb or connection

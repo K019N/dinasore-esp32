@@ -125,6 +125,10 @@ class ElementClass:
         """Для итерации по дочерним элементам"""
         return iter(self.children)
     
+    def getroot(self):
+        """Добавляем метод getroot для совместимости с xml.etree.ElementTree"""
+        return self
+    
     def find(self, tag):
         for child in self.children:
             if child.tag == tag:

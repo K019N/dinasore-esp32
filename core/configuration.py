@@ -32,64 +32,71 @@ class Configuration:
         logging.info('creating a new fb...')
 
         fb_res = fb_resources.FBResources(fb_type)
-
         exists_fb = fb_res.exists_fb()
+
         if not exists_fb:
-            # Downloads the fb definition and python code
-            logging.info('fb doesnt exists, needs to be downloaded ...')
+            logging.info('fb does not exist, needs to be downloaded...')
 
         fb_definition, fb_obj = fb_res.import_fb()
-        
-        # check if if happened any importing error
-        if fb_definition is not None:
-            # Checking order and number or arguments of schedule function
-            # Logs warning if order and number are not the same 
-            schedule_code = fb_obj.schedule.__code__
-            schedule_args = schedule_code.co_varnames[:schedule_code.co_argcount]
 
-            if schedule_args and schedule_args[0] == 'self':
-                schedule_args = schedule_args[1:]
-                
-            if len(schedule_args) > 3:
-                schedule_args = schedule_args[3:]
-                schedule_args = [i.lower() for i in schedule_args]
+        if fb_definition is None:
+            logging.error('cannot create fb type: {0}, instance: {1}'.format(fb_type, fb_name))
+            return None, None
+
+        # Проверка соответствия аргументов функции schedule (если возможно)
+        if hasattr(fb_obj, 'schedule'):
+            schedule_func = fb_obj.schedule
+
+            # В MicroPython нет introspection, поэтому используем метаданные,
+            # если они заданы в объекте Function Block
+            schedule_args = getattr(fb_obj, 'schedule_args', None)
+
+            if schedule_args is not None:
+                # Приводим имена аргументов к нижнему регистру
+                schedule_args = [arg.lower() for arg in schedule_args]
+
+                # Извлекаем список входных переменных из XML
                 xml_args = []
                 for child in fb_definition:
                     input_vars = child.find('InputVars')
+                    if input_vars is None:
+                        continue
                     vars_list = input_vars.findall('VarDeclaration')
                     for xml_var in vars_list:
-                        if xml_var.get('Name') is not None:
-                            xml_args.append(xml_var.get('Name').lower())
+                        var_name = xml_var.get('Name')
+                        if var_name is not None:
+                            xml_args.append(var_name.lower())
                         else:
-                            logging.error('Could not find mandatory "Name" attribute for variable. '
-                                          'Please check {0}.fbt'.format(fb_name))
+                            logging.error(
+                                'Missing "Name" attribute for variable. Please check {0}.fbt'.format(fb_name)
+                            )
+
+                # Сравнение аргументов schedule и XML
                 if schedule_args != xml_args:
-                    logging.warning('Argument names for schedule function of {0} '
-                                    'do not match definition in {0}.fbt'.format(fb_name))
-                    logging.warning('Ensure your variable arguments are the '
-                                    'same as the input variables and in the same order')
+                    logging.warning(
+                        'Argument names for schedule() of {0} do not match definition in {0}.fbt'.format(fb_name)
+                    )
+                    logging.warning(
+                        'Ensure variable arguments match the InputVars order and names.'
+                    )
 
-            fb_element = fb.FB(fb_name, fb_type, fb_obj, fb_definition)
+        # Создание FB-элемента
+        fb_element = fb.FB(fb_name, fb_type, fb_obj, fb_definition)
+        self.set_fb(fb_name, fb_element)
+        logging.info('created fb type: {0}, instance: {1}'.format(fb_type, fb_name))
 
-            self.set_fb(fb_name, fb_element)
-            logging.info('created fb type: {0}, instance: {1}'.format(fb_type, fb_name))
+        # Инициализация (если требуется)
+        if init:
+            self.create_connection('START.COLD', '{0}.INIT'.format(fb_name))
 
-            # activates the initialization
-            if init:
-                self.create_connection('START.COLD', '{0}.INIT'.format(fb_name))
+        # Создание петли для циклического FB (если применимо)
+        if getattr(fb_element, 'loop_fb', False):
+            loop_fb_name = '{0}_LOOP1'.format(fb_name)
+            self.create_fb(loop_fb_name, 'SLEEP', init=False)
+            self.create_connection('{0}.READ_O'.format(fb_name), '{0}.SLEEP'.format(loop_fb_name))
+            self.create_connection('{0}.SLEEP_O'.format(loop_fb_name), '{0}.READ'.format(fb_name))
 
-            # creates the loop if is a loop fb
-            if fb_element.loop_fb:
-                loop_fb_name = '{0}_LOOP1'.format(fb_name)
-                self.create_fb(loop_fb_name, 'SLEEP', init=False)
-                self.create_connection('{0}.READ_O'.format(fb_name), '{0}.SLEEP'.format(loop_fb_name))
-                self.create_connection('{0}.SLEEP_O'.format(loop_fb_name), '{0}.READ'.format(fb_name))
-
-            # returns the both elements
-            return fb_element, fb_definition
-        else:
-            logging.error('can not create the fb type: {0}, instance: {1}'.format(fb_type, fb_name))
-            return None, None
+        return fb_element, fb_definition
 
     def create_connection(self, source, destination):
         logging.info('creating a new connection...')
@@ -146,10 +153,8 @@ class Configuration:
 
     def write_connection(self, source_value, destination):
         logging.info('writing a connection...')
-        print("source: ", source_value, "dest: ", destination)
         destination_attr = destination.split('.')
         
-        print(destination_attr)
         destination_fb = self.get_fb(destination_attr[0])
         destination_name = destination_attr[1]
         

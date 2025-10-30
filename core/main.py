@@ -26,7 +26,7 @@ def parse_arguments():
     defaults = {
         'address': 'localhost',
         'port_diac': 61499,
-        'log_level': 'ERROR'
+        'log_level': 'WARN'
     }
     args = sys.argv[1:]
     
@@ -53,14 +53,15 @@ def parse_arguments():
 if __name__ == "__main__":
     log_levels = {'ERROR': logging.ERROR,
                   'WARN': logging.WARN,
-                  'INFO': logging.INFO}
+                  'INFO': logging.INFO,
+                  'DEBUG': logging.DEBUG}
 
     address = 'localhost'
     diac_address = None
     project_name = None
     port_diac = 61499
     port_opc = 4840
-    log_level = log_levels['ERROR']
+    log_level = log_levels['WARN']
     n_samples = 10
     secs_sample = 20
     monitor = [n_samples, secs_sample]
@@ -94,12 +95,12 @@ if __name__ == "__main__":
     m = manager.Manager()
     # sets the ua integration option
     m.build_fboot()
-
     # creates the tcp server to communicate with the 4diac
     hand = tcp_server.TcpServer(address, port_diac, 10, m)
     try:
         # handles every client
         while True:
+            print('handle')
             hand.handle_client()
     except KeyboardInterrupt:
         logging.info('interrupted server')
