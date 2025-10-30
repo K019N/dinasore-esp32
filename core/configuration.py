@@ -2,6 +2,7 @@ from core import fb_resources
 from core import fb
 from core import fb_interface
 from core import fb_interface, logging
+from custom_parser.xml import ElementTree as ETree
 
 
 class Configuration:
@@ -93,13 +94,18 @@ class Configuration:
     def create_connection(self, source, destination):
         logging.info('creating a new connection...')
 
-        source_attr = source.split(sep='.')
-        destination_attr = destination.split(sep='.')
+        source_attr = source.split('.')
+        destination_attr = destination.split('.')
 
         source_fb = self.get_fb(source_attr[0])
         source_name = source_attr[1]
         destination_fb = self.get_fb(destination_attr[0])
         destination_name = destination_attr[1]
+        
+        if not destination_fb:
+            logging.error("No block matches {0}".format(destination_attr[0]))
+            logging.error("Couldnt create connection")
+            return
 
         connection = fb_interface.Connection(destination_fb, destination_name)
         source_fb.add_connection(source_name, connection)
@@ -142,8 +148,15 @@ class Configuration:
         logging.info('writing a connection...')
         print("source: ", source_value, "dest: ", destination)
         destination_attr = destination.split('.')
+        
+        print(destination_attr)
         destination_fb = self.get_fb(destination_attr[0])
         destination_name = destination_attr[1]
+        
+        if not destination_fb:
+            logging.error("No block matches {0}".format(destination_attr[0]))
+            logging.error("Couldnt write connection")
+            return
 
         v_type, value, is_watch = destination_fb.read_attr(destination_name)
 
@@ -184,7 +197,11 @@ class Configuration:
         for fb_name, fb_element in self.fb_dictionary.items():
             if fb_name != 'START':
                 fb_element.start()
-
+        
+        if not self.get_fb('START'):
+            logging.error("CRITICAL no START block found")
+            return
+        
         outputs = self.get_fb('START').fb_obj.schedule()
         self.get_fb('START').update_outputs(outputs)
 

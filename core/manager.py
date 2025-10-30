@@ -167,6 +167,9 @@ class Manager:
                         self.set_config(fb_name, config)
                         self.store_request(xml_data)
                     
+                    if not self.get_config(config_id):
+                        logging.error("Config not exists while CREATE.FB")
+                        continue
                     self.get_config(config_id).create_fb(fb_name, fb_type)
                     self.store_request(xml_data, config_id)
 
@@ -174,6 +177,9 @@ class Manager:
                 elif child.tag == 'Connection':
                     connection_source = child.attrib['Source']
                     connection_destination = child.attrib['Destination']
+                    if not self.get_config(config_id):
+                        logging.error("Config not exists while CREATE.Connection")
+                        continue
                     self.get_config(config_id).create_connection(connection_source, connection_destination)
                     self.store_request(xml_data, config_id)
 
@@ -200,17 +206,25 @@ class Manager:
             self.requests = []
             self.write_fboot = False
             # Starts the configuration
-            self.get_config(config_id).start_work()
+            if not self.get_config(config_id):
+                        logging.error("Config not exists while START")
+            else:
+                self.get_config(config_id).start_work()
         
         elif action == 'WRITE':
             # Iterate over the list of children
+            print("ELEMET TEXT: ", element.text)
             for child in element.children:
                 # Write a connection with value
                 if child.tag == 'Connection':
-                    conn = ETree.fromstring(child)
+                    conn = child
+                    print("conn info: ", conn)
                     connection_source = conn.attrib['Source']
                     connection_destination = conn.attrib['Destination']
                     print("source: ", connection_source, "dest: ", connection_destination)
+                    if not self.get_config(config_id):
+                        logging.error("Config not exists while WRITE")
+                        continue
                     self.get_config(config_id).write_connection(connection_source, connection_destination)
                     self.store_request(xml_data, config_id)
 
@@ -224,7 +238,7 @@ class Manager:
         if xml_response is not None:
             xml.append(xml_response)
 
-        response_xml = ETree.tostring(xml).encode('utf-8')
+        response_xml = ETree.tostring(xml)
         hex_input = '{:04x}'.format(len(response_xml))
         second_byte = int(hex_input[0:2], 16)
         third_byte = int(hex_input[2:4], 16)
