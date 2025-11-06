@@ -23,8 +23,6 @@ class Manager:
     def get_config(self, config_id):
         fb_element = None
         try:
-            print(self.config_dictionary)
-            print(config_id)
             fb_element = self.config_dictionary[config_id]
         except KeyError as error:
             logging.error('can not find that configuration (4DIAC resource)')

@@ -100,7 +100,6 @@ if __name__ == "__main__":
     try:
         # handles every client
         while True:
-            print('handle')
             hand.handle_client()
     except KeyboardInterrupt:
         logging.info('interrupted server')

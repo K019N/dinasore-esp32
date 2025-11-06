@@ -18,6 +18,9 @@ class FB(fb_interface.FBInterface):
 
     def start(self):
         logging.info('starting fb {0}...'.format(self.fb_name))
+        if self.fb_name == "OUT_ANY_CONSOLE":
+            self.input_events["REQ"] = ("Event", None, False)
+        print("...EI: ", self.input_events, "...") 
         try:
             self.thread_id = _thread.start_new_thread(self.run, ())
             self.running = True
@@ -47,12 +50,12 @@ class FB(fb_interface.FBInterface):
 
             except TypeError as error:
                 logging.error('invalid number of arguments (check if fb method args are in fb_type.fbt)')
-                logging.error(error)
+                logging.error(str(error))
                 logging.info('stopping the fb work...')
                 break
 
             except Exception as ex:
-                logging.error(ex)
+                logging.error(str(ex))
                 logging.info('stopping the fb work...')
                 break
 
@@ -60,7 +63,7 @@ class FB(fb_interface.FBInterface):
                 if self.kill_event:
                     break
 
-                self.update_outputs(outputs)
+                # self.update_outputs(outputs)
 
                 with self.lock:
                     self.execution_end = True

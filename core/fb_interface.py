@@ -3,6 +3,8 @@ from collections import OrderedDict
 from core import fb_interface, logging
 import time
 
+from custom_parser.xml import ElementTree as ETree
+
 
 class MicroEvent:
     def __init__(self):
@@ -59,27 +61,32 @@ class FBInterface:
         logging.info('parsing the fb interface (inputs/outputs events/vars)')
 
         # Parse the xml (iterates over the root)
-        for fb in xml_root:
+        for Fb in xml_root.children:
+            fb = ETree.fromstring(Fb)
+            
             # Searches for the interfaces list
             if fb.tag == 'InterfaceList':
                 # Iterates over the interface list
                 # to find the inputs/outputs
-                for interface in fb:
+                for interface in fb.children:
+                    # interface = ETree.fromstring(Interface)
                     # Input events
                     if interface.tag == 'EventInputs':
                         # Iterates over the input events
                         for event in interface:
-                            event_name = event.attrib['Name']
-                            event_type = event.attrib['Type']
-                            self.input_events[event_name] = (event_type, None, False)
+                            if event.tag == "Event":
+                                event_name = event.attrib['Name']
+                                event_type = event.attrib['Type']
+                                self.input_events[event_name] = (event_type, None, False)
 
                     # Output Events
                     elif interface.tag == 'EventOutputs':
                         # Iterates over the output events
                         for event in interface:
-                            event_name = event.attrib['Name']
-                            event_type = event.attrib['Type']
-                            self.output_events[event_name] = (event_type, None, False)
+                            if event.tag == "Event":
+                                event_name = event.attrib['Name']
+                                event_type = event.attrib['Type']
+                                self.output_events[event_name] = (event_type, None, False)
 
                     # Input vars
                     elif interface.tag == 'InputVars':
@@ -205,6 +212,8 @@ class FBInterface:
             self.output_connections[value_name] = conns
 
     def push_event(self, event_name, event_value):
+        time.sleep(2)
+        print("@@@@ -PUSHING- @@@@")
         if event_value is not None:
             self.event_queue.append((event_name, event_value))
             # Updates the event value
@@ -221,8 +230,10 @@ class FBInterface:
 
     def wait_event(self):
         while len(self.event_queue) <= 0:
+            print("---event waiting---")
             self.new_event.wait()
             # Clears new_event to wait for new events
+            print("---event got---")
             self.new_event.clear()
         # Clears new_event to wait for new events
         self.new_event.clear()

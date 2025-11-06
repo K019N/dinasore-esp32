@@ -1,3 +1,8 @@
 ;<Request ID="2" Action="CREATE"><FB Name="EMB_RES" Type="EMB_RES" /></Request> 
-;<Request ID="3" Action="CREATE"><FB Name="OUT_ANY_CONSOLE" Type="OUT_ANY_CONSOLE" /></Request> 
+EMB_RES;<Request ID="3" Action="CREATE"><FB Name="OUT_ANY_CONSOLE" Type="OUT_ANY_CONSOLE" /></Request> 
+EMB_RES;<Request ID="3" Action="CREATE"><FB Name="OUT_ANY_CONSOLE" Type="OUT_ANY_CONSOLE" /></Request> 
+EMB_RES;<Request ID="4" Action="WRITE"><Connection Source="TRUE" Destination="OUT_ANY_CONSOLE.QI" /></Request> 
+EMB_RES;<Request ID="5" Action="WRITE"><Connection Source="TestLabel" Destination="OUT_ANY_CONSOLE.LABEL" /></Request> 
+EMB_RES;<Request ID="6" Action="WRITE"><Connection Source="INT#1" Destination="OUT_ANY_CONSOLE.IN" /></Request> 
+EMB_RES;<Request ID="7" Action="CREATE"><Connection Source="START.COLD" Destination="OUT_ANY_CONSOLE.REQ" /></Request> 
 EMB_RES;<Request ID="8" Action="START"/> 

@@ -24,7 +24,8 @@ class XMLParser:
                         tag_name = data[i:end].strip()
                         # Проверяем, что стек не пуст и тег соответствует
                         if self.stack and self.stack[-1].tag == tag_name:
-                            self.current = self.stack.pop()
+                            self.stack.pop()
+                            self.current = self.stack[-1] if self.stack else None
                         i = end + 1
                 else:
                     # Открывающий тег
