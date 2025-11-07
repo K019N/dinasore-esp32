@@ -212,8 +212,7 @@ class FBInterface:
             self.output_connections[value_name] = conns
 
     def push_event(self, event_name, event_value):
-        time.sleep(2)
-        print("@@@@ -PUSHING- @@@@")
+        time.sleep(0.01)
         if event_value is not None:
             self.event_queue.append((event_name, event_value))
             # Updates the event value

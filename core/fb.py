@@ -18,9 +18,6 @@ class FB(fb_interface.FBInterface):
 
     def start(self):
         logging.info('starting fb {0}...'.format(self.fb_name))
-        if self.fb_name == "OUT_ANY_CONSOLE":
-            self.input_events["REQ"] = ("Event", None, False)
-        print("...EI: ", self.input_events, "...") 
         try:
             self.thread_id = _thread.start_new_thread(self.run, ())
             self.running = True

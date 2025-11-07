@@ -6,12 +6,7 @@ try:
     current_path = sys.path[0] if sys.path else ''
     new_path = os.path.join(os.path.dirname(current_path)) if current_path else '/dinasore'
     
-    # Проверяем, что путь не пустой и не добавляем дубликаты
-    if new_path and new_path not in sys.path:
-        sys.path.append(new_path)
-        print("Добавлен путь:", new_path)
-    else:
-        print("Путь уже существует или пустой")
+    sys.path.append(new_path)
         
 except Exception as e:
     print("Ошибка при добавлении пути:", e)
