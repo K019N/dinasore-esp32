@@ -8,7 +8,6 @@ class XMLParser:
     
     def feed(self, data):
         i = 0
-        data = data.strip()
         while i < len(data):
             if data[i] == '<':
                 # Сохраняем накопленный текст перед обработкой тега
@@ -185,7 +184,6 @@ def fromstring(text):
     if not isinstance(text, str):
         text = str(text)
     
-    text = text.strip()
     if not text:
         raise ValueError("Empty XML string")
     
