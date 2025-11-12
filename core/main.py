@@ -16,12 +16,14 @@ from core import logging
 from communication import tcp_server
 from core import manager
 
+from netconf.connect import wifi_connect
+
 
 def parse_arguments():
     defaults = {
         'address': 'localhost',
         'port_diac': 61499,
-        'log_level': 'WARN'
+        'log_level': 'DEBUG'
     }
     args = sys.argv[1:]
     
@@ -46,17 +48,20 @@ def parse_arguments():
     return defaults
 
 if __name__ == "__main__":
+    
+    address = wifi_connect()
+    
     log_levels = {'ERROR': logging.ERROR,
                   'WARN': logging.WARN,
                   'INFO': logging.INFO,
                   'DEBUG': logging.DEBUG}
-
-    address = 'localhost'
+    if address == None:
+        address = 'localhost'
     diac_address = None
     project_name = None
     port_diac = 61499
     port_opc = 4840
-    log_level = log_levels['WARN']
+    log_level = log_levels['DEBUG']
     n_samples = 10
     secs_sample = 20
     monitor = [n_samples, secs_sample]
@@ -72,7 +77,6 @@ if __name__ == "__main__":
     # build parser for application command line arguments
     args = parse_arguments()
 
-    if args['address'] != None: address = args['address']
     if args['port_diac'] != None: port_diac = args['port_diac']
     if args['log_level'] != None: log_level = log_levels[args['log_level']]
 
