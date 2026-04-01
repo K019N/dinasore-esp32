@@ -1,8 +1,15 @@
-;<Request ID="2" Action="CREATE"><FB Name="EMB_RES" Type="EMB_RES" /></Request> 
-EMB_RES;<Request ID="3" Action="CREATE"><FB Name="OUT_ANY_CONSOLE" Type="OUT_ANY_CONSOLE" /></Request> 
-EMB_RES;<Request ID="3" Action="CREATE"><FB Name="OUT_ANY_CONSOLE" Type="OUT_ANY_CONSOLE" /></Request> 
-EMB_RES;<Request ID="4" Action="WRITE"><Connection Source="TRUE" Destination="OUT_ANY_CONSOLE.QI" /></Request> 
-EMB_RES;<Request ID="5" Action="WRITE"><Connection Source="TestLabel" Destination="OUT_ANY_CONSOLE.LABEL" /></Request> 
-EMB_RES;<Request ID="6" Action="WRITE"><Connection Source="INT#1" Destination="OUT_ANY_CONSOLE.IN" /></Request> 
-EMB_RES;<Request ID="7" Action="CREATE"><Connection Source="START.COLD" Destination="OUT_ANY_CONSOLE.REQ" /></Request> 
-EMB_RES;<Request ID="8" Action="START"/> 
+;<Request ID="5" Action="CREATE"><FB Name="EMB_RES" Type="EMB_RES" /></Request>
+EMB_RES;<Request ID="6" Action="CREATE"><FB Name="OUT_ANY_CONSOLE" Type="OUT_ANY_CONSOLE"></FB></Request>
+EMB_RES;<Request ID="7" Action="CREATE"><FB Name="OUT_ANY_CONSOLE_1" Type="OUT_ANY_CONSOLE"></FB></Request>
+EMB_RES;<Request ID="8" Action="CREATE"><FB Name="OUT_ANY_CONSOLE_2" Type="OUT_ANY_CONSOLE"></FB></Request>
+EMB_RES;<Request ID="9" Action="WRITE"><Connection Source="1" Destination="OUT_ANY_CONSOLE.QI" /></Request>
+EMB_RES;<Request ID="10" Action="WRITE"><Connection Source="label" Destination="OUT_ANY_CONSOLE.LABEL" /></Request>
+EMB_RES;<Request ID="11" Action="WRITE"><Connection Source="REAL#3.14159" Destination="OUT_ANY_CONSOLE.IN" /></Request>
+EMB_RES;<Request ID="12" Action="WRITE"><Connection Source="1" Destination="OUT_ANY_CONSOLE_1.QI" /></Request>
+EMB_RES;<Request ID="13" Action="WRITE"><Connection Source="INT#123" Destination="OUT_ANY_CONSOLE_1.IN" /></Request>
+EMB_RES;<Request ID="14" Action="WRITE"><Connection Source="1" Destination="OUT_ANY_CONSOLE_2.QI" /></Request>
+EMB_RES;<Request ID="15" Action="WRITE"><Connection Source="BOOL#1" Destination="OUT_ANY_CONSOLE_2.IN" /></Request>
+EMB_RES;<Request ID="16" Action="CREATE"><Connection Source="START.COLD" Destination="OUT_ANY_CONSOLE.REQ" /></Request>
+EMB_RES;<Request ID="17" Action="CREATE"><Connection Source="OUT_ANY_CONSOLE.CNF" Destination="OUT_ANY_CONSOLE_1.REQ" /></Request>
+EMB_RES;<Request ID="18" Action="CREATE"><Connection Source="OUT_ANY_CONSOLE_1.CNF" Destination="OUT_ANY_CONSOLE_2.REQ" /></Request>
+EMB_RES;<Request ID="19" Action="START"/>
