@@ -1,7 +1,0 @@
-psutil
-cryptography
-opcua
-numpy
-argparse
-scikit-learn
-pandas

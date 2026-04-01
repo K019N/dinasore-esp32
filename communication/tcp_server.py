@@ -1,5 +1,5 @@
 import socket
-import logging
+from core import logging
 import sys
 from communication import client_thread
 
