@@ -60,7 +60,11 @@ class FB(fb_interface.FBInterface):
                 if self.kill_event:
                     break
 
-                # self.update_outputs(outputs)
+                # Update outputs and propagate events/connections
+                try:
+                    self.update_outputs(outputs)
+                except Exception as ex:
+                    logging.error('error while updating outputs: {0}'.format(ex))
 
                 with self.lock:
                     self.execution_end = True
