@@ -9,11 +9,14 @@ class FBResources:
     def __init__(self, fb_type):
         self.fb_type = fb_type
 
+        # Get the base directory (workspace root)
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+
         # Gets the file path to the python file
-        self.py_path = "/dinasore/resources/function_blocks/" + fb_type + ".py"
+        self.py_path = os.path.join(base_dir, "resources", "function_blocks", fb_type + ".py")
 
         # Gets the file path to the fbt (xml) file
-        self.fbt_path = "/dinasore/resources/function_blocks/" + fb_type + ".fbt"
+        self.fbt_path = os.path.join(base_dir, "resources", "function_blocks", fb_type + ".fbt")
 
     def import_fb(self):
         logging.info('importing fb python file and definition file...')

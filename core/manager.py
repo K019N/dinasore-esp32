@@ -18,7 +18,8 @@ class Manager:
         # stores the requests structure
         self.requests = []
         self.write_fboot = False
-        self.fboot_path = '/dinasore/resources/data_model.fboot'
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+        self.fboot_path = os.path.join(base_dir, 'resources', 'data_model.fboot')
 
     def get_config(self, config_id):
         fb_element = None
@@ -196,7 +197,7 @@ class Manager:
         elif action == 'START':
             # saves the actual configuration on fboot file
             self.store_request(xml_data, config_id)
-            self.save_fboot()
+            # self.save_fboot()  # Commented out to prevent modifying the fboot file
             self.requests = []
             self.write_fboot = False
             # Starts the configuration

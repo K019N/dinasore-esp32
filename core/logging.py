@@ -49,7 +49,7 @@ class Logger:
             
         # Get current time
         current_time = time.time()
-        year, month, day, hour, minute, second, weekday, yearday = time.localtime(current_time)
+        year, month, day, hour, minute, second, weekday, yearday = time.localtime(current_time)[:8]
         asctime = f"{year:04d}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{second:02d}"
         
         # Replace placeholders in format string

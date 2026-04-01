@@ -16,14 +16,14 @@ from core import logging
 from communication import tcp_server
 from core import manager
 
-from netconf.connect import wifi_connect
+# from netconf.connect import wifi_connect
 
 
 def parse_arguments():
     defaults = {
         'address': 'localhost',
         'port_diac': 61499,
-        'log_level': 'DEBUG'
+        'log_level': 'ERROR'
     }
     args = sys.argv[1:]
     
@@ -49,7 +49,8 @@ def parse_arguments():
 
 if __name__ == "__main__":
     
-    address = wifi_connect()
+    # address = wifi_connect()
+    address = "localhost"
     
     log_levels = {'ERROR': logging.ERROR,
                   'WARN': logging.WARN,
@@ -61,7 +62,7 @@ if __name__ == "__main__":
     project_name = None
     port_diac = 61499
     port_opc = 4840
-    log_level = log_levels['DEBUG']
+    log_level = log_levels['ERROR']
     n_samples = 10
     secs_sample = 20
     monitor = [n_samples, secs_sample]
@@ -81,7 +82,7 @@ if __name__ == "__main__":
     if args['log_level'] != None: log_level = log_levels[args['log_level']]
 
     # Configure the logging output
-    log_path = '/dinasore/resources/error_list.log'
+    log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'error_list.log')
     try:
         os.remove(log_path)
     except:

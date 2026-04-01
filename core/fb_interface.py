@@ -223,16 +223,14 @@ class FBInterface:
     def pop_event(self):
         if len(self.event_queue) > 0:
             # pop event
-            event_name, event_value = self.event_queue.pop(0)  # Используем pop(0) для FIFO
+            event_name, event_value = self.event_queue.pop(0)
             return event_name, event_value
         return None, None
 
     def wait_event(self):
         while len(self.event_queue) <= 0:
-            print("---event waiting---")
             self.new_event.wait()
             # Clears new_event to wait for new events
-            print("---event got---")
             self.new_event.clear()
         # Clears new_event to wait for new events
         self.new_event.clear()
