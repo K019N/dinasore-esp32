@@ -154,14 +154,6 @@ class Manager:
                     fb_name = fb.attrib['Name']
                     fb_type = fb.attrib['Type']
                     
-                    
-                    if fb_name not in self.config_dictionary:
-                        # Creates the configuration
-                        config = configuration.Configuration(fb_name, fb_type)
-                        self.write_fboot = True
-                        self.set_config(fb_name, config)
-                        self.store_request(xml_data)
-                    
                     if not self.get_config(config_id):
                         logging.error("Config not exists while CREATE.FB")
                         continue
