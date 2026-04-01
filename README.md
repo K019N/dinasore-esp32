@@ -3,6 +3,21 @@
 
 **D**ynamic **IN**telligent **A**rchitecture for **S**oftware and M**O**dular **RE**configuration - **DINASORE** - is a distributed platform that enables reconfiguration of **Cyber-Physical System** (CPS). The DINASORE platform allows the implementation of Function Block (FB) based pipelines for sensor integration, data processing, and systems control. The FBs are implemented in Python and can be redistributed across the DINASORE nodes. The DINASORE uses the **4DIAC-IDE** as graphical user interface (GUI) implementing the **IEC61499** standards. This version is targeted to the **Industry 4.0** applications, for that, it also uses the **OPC-UA** protocol to allow communication with the other industrial components.
 
+# INSTALL ON ESP32
+- First, install MicroPython on your ESP32 (I used [this guide](https://randomnerdtutorials.com/flashing-micropython-firmware-esptool-py-esp32-esp8266/)).
+- Clone this repository on your PC:
+```bash
+git clone https://github.com/K019N/dinasore-esp32.git
+```
+- Use [Thonny IDE](https://microcontrollerslab.com/getting-started-thonny-micropython-ide-esp32-esp8266/) or the VS Code ESP32 extension to create the `/dinasore` directory.
+- Using Thonny IDE or the VS Code MicroPython ESP32 extension, copy these folders from the cloned repo on your PC to `/dinasore` on the ESP32:
+  - communication
+  - core
+  - custom_parser
+  - netconf
+  - resources
+  - utils
+
 ## Contents
 
 * [Home Wiki](https://github.com/DIGI2-FEUP/dinasore/wiki)
