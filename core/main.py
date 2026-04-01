@@ -9,7 +9,7 @@ try:
     sys.path.append(new_path)
         
 except Exception as e:
-    print("Ошибка при добавлении пути:", e)
+    print("Path error:", e)
 
 
 from core import logging
