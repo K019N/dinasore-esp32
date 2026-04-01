@@ -6,6 +6,7 @@ import os
 import sys
 import re
 from custom_parser.xml import ElementTree as ETree
+from utils.is_micropython import is_micropython
 
 
 class Manager:
@@ -18,8 +19,12 @@ class Manager:
         # stores the requests structure
         self.requests = []
         self.write_fboot = False
-        base_dir = os.path.dirname(os.path.dirname(__file__))
-        self.fboot_path = os.path.join(base_dir, 'resources', 'data_model.fboot')
+
+        if is_micropython():
+            self.fboot_path = '/dinasore/resources/data_model.fboot'
+        else:
+            base_dir = os.path.dirname(os.path.dirname(__file__))
+            self.fboot_path = os.path.join(base_dir, 'resources', 'data_model.fboot')
 
     def get_config(self, config_id):
         fb_element = None

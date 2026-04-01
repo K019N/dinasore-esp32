@@ -15,8 +15,10 @@ except Exception as e:
 from core import logging
 from communication import tcp_server
 from core import manager
+from utils.is_micropython import is_micropython
 
-# from netconf.connect import wifi_connect
+if is_micropython():
+    from netconf.connect import wifi_connect
 
 
 def parse_arguments():
@@ -49,8 +51,10 @@ def parse_arguments():
 
 if __name__ == "__main__":
     
-    # address = wifi_connect()
-    address = "localhost"
+    if is_micropython():
+        address = wifi_connect()
+    else:
+        address = "localhost"
     
     log_levels = {'ERROR': logging.ERROR,
                   'WARN': logging.WARN,
@@ -82,7 +86,11 @@ if __name__ == "__main__":
     if args['log_level'] != None: log_level = log_levels[args['log_level']]
 
     # Configure the logging output
-    log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'error_list.log')
+    if is_micropython():
+        log_path = '/dinasore/resources/error_list.log'
+    else:
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'error_list.log')
+    
     try:
         os.remove(log_path)
     except:
