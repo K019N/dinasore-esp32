@@ -1,5 +1,6 @@
 import _thread
 from core import logging
+from core import request_profiler
 import time
 
 
@@ -29,9 +30,22 @@ class ClientThread:
                 data = self.connection.recv(2048)
                 logging.info('Received {0}'.format(data))
                 if data:
-                    response = self.parse_request(data)
-                    logging.info('Sending response {0}'.format(response))
-                    self.connection.sendall(response)
+                    total_start = request_profiler.start_timer()
+                    process_start = request_profiler.start_timer()
+                    response = None
+                    try:
+                        response = self.parse_request(data)
+                        process_ms = request_profiler.elapsed_ms(process_start)
+                        logging.info('Sending response {0}'.format(response))
+                        self.connection.sendall(response)
+                        total_ms = request_profiler.elapsed_ms(total_start)
+                        request_profiler.log_request(self.name, data, response, process_ms, total_ms)
+                    except Exception as e:
+                        process_ms = request_profiler.elapsed_ms(process_start)
+                        total_ms = request_profiler.elapsed_ms(total_start)
+                        request_profiler.log_request(self.name, data, response, process_ms, total_ms,
+                                                     status='ERROR', error=str(e))
+                        raise
                 else:
                     logging.info('No more data from {0}'.format(self.client_address))
                     break

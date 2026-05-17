@@ -13,6 +13,7 @@ except Exception as e:
 
 
 from core import logging
+from core import request_profiler
 from communication import tcp_server
 from core import manager
 from utils.is_micropython import is_micropython
@@ -88,16 +89,23 @@ if __name__ == "__main__":
     # Configure the logging output
     if is_micropython():
         log_path = '/dinasore/resources/error_list.log'
+        timing_log_path = '/dinasore/resources/request_timing.log'
     else:
         log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'error_list.log')
+        timing_log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'request_timing.log')
     
     try:
         os.remove(log_path)
     except:
         pass
+    try:
+        os.remove(timing_log_path)
+    except:
+        pass
     logging.basicConfig(filename=log_path,
                         level=log_level,
                         format='[%(asctime)s][%(levelname)s][%(threadName)s] %(message)s')
+    request_profiler.configure(timing_log_path)
 
     # creates the 4diac manager
     m = manager.Manager()
