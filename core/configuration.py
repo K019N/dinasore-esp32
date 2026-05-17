@@ -52,6 +52,7 @@ class Configuration:
 
     def create_fb(self, fb_name, fb_type, init=True):
         logging.info('creating a new fb...')
+        display_fb_name = fb_name
         fb_name = self.normalize_fb_name(fb_name)
         fb_type = self.normalize_fb_type(fb_type)
 
@@ -105,9 +106,9 @@ class Configuration:
                     )
 
         # Создание FB-элемента
-        fb_element = fb.FB(fb_name, fb_type, fb_obj, fb_definition)
+        fb_element = fb.FB(display_fb_name, fb_type, fb_obj, fb_definition)
         self.set_fb(fb_name, fb_element)
-        logging.info('created fb type: {0}, instance: {1}'.format(fb_type, fb_name))
+        logging.info('created fb type: {0}, instance: {1}'.format(fb_type, display_fb_name))
 
         # Инициализация (если требуется)
         if init:

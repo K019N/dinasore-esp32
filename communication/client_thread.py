@@ -51,7 +51,7 @@ class ClientThread:
         request_start = data.find(b'<Request')
 
         if request_start >= 0:
-            xml_data = data[request_start:].decode('utf-8')
+            xml_data = self.remove_service_symbols(data[request_start:].decode('utf-8'))
         else:
             xml_data = None
 
@@ -64,6 +64,14 @@ class ClientThread:
             response = self.config_m.parse_configuration(data_str, config_id)
 
         return response
+
+    @staticmethod
+    def remove_service_symbols(data):
+        if "&apos;" in data:
+            data = data.replace('&apos;', '')
+        elif "&quote;" in data:
+            data = data.replace('&quote;', '')
+        return data
 
     def is_alive(self):
         return True 
