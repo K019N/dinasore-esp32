@@ -9,11 +9,31 @@ class Configuration:
 
     def __init__(self, config_id, config_type):
         self.fb_dictionary = dict()
-        self.config_id = config_id
+        self.config_id = self.normalize_fb_name(config_id)
         self.create_fb('START', config_type)
+
+    @staticmethod
+    def normalize_fb_name(fb_name):
+        if fb_name is None:
+            return fb_name
+        return fb_name.rsplit('.', 1)[-1]
+
+    @staticmethod
+    def normalize_fb_type(fb_type):
+        if fb_type is None:
+            return fb_type
+        return fb_type.rsplit('::', 1)[-1]
+
+    @staticmethod
+    def split_endpoint(endpoint):
+        parts = endpoint.split('.')
+        if len(parts) < 2:
+            return endpoint, None
+        return parts[-2], parts[-1]
 
     def get_fb(self, fb_name):
         fb_element = None
+        fb_name = self.normalize_fb_name(fb_name)
         try:
             fb_element = self.fb_dictionary[fb_name]
         except KeyError as error:
@@ -23,13 +43,17 @@ class Configuration:
         return fb_element
 
     def set_fb(self, fb_name, fb_element):
+        fb_name = self.normalize_fb_name(fb_name)
         self.fb_dictionary[fb_name] = fb_element
 
     def exists_fb(self, fb_name):
+        fb_name = self.normalize_fb_name(fb_name)
         return fb_name in self.fb_dictionary
 
     def create_fb(self, fb_name, fb_type, init=True):
         logging.info('creating a new fb...')
+        fb_name = self.normalize_fb_name(fb_name)
+        fb_type = self.normalize_fb_type(fb_type)
 
         fb_res = fb_resources.FBResources(fb_type)
         exists_fb = fb_res.exists_fb()
@@ -101,16 +125,19 @@ class Configuration:
     def create_connection(self, source, destination):
         logging.info('creating a new connection...')
 
-        source_attr = source.split('.')
-        destination_attr = destination.split('.')
+        source_fb_name, source_name = self.split_endpoint(source)
+        destination_fb_name, destination_name = self.split_endpoint(destination)
 
-        source_fb = self.get_fb(source_attr[0])
-        source_name = source_attr[1]
-        destination_fb = self.get_fb(destination_attr[0])
-        destination_name = destination_attr[1]
+        source_fb = self.get_fb(source_fb_name)
+        destination_fb = self.get_fb(destination_fb_name)
         
         if not destination_fb:
-            logging.error("No block matches {0}".format(destination_attr[0]))
+            logging.error("No block matches {0}".format(destination_fb_name))
+            logging.error("Couldnt create connection")
+            return
+
+        if not source_fb:
+            logging.error("No block matches {0}".format(source_fb_name))
             logging.error("Couldnt create connection")
             return
 
@@ -122,9 +149,8 @@ class Configuration:
     def create_watch(self, source, destination):
         logging.info('creating a new watch...')
 
-        source_attr = source.split(sep='.')
-        source_fb = self.get_fb(source_attr[0])
-        source_name = source_attr[1]
+        source_fb_name, source_name = self.split_endpoint(source)
+        source_fb = self.get_fb(source_fb_name)
 
         try:
             source_fb.set_attr(source_name, set_watch=True)
@@ -138,9 +164,8 @@ class Configuration:
     def delete_watch(self, source, destination):
         logging.info('deleting a new watch...')
 
-        source_attr = source.split(sep='.')
-        source_fb = self.get_fb(source_attr[0])
-        source_name = source_attr[1]
+        source_fb_name, source_name = self.split_endpoint(source)
+        source_fb = self.get_fb(source_fb_name)
 
         try:
             source_fb.set_attr(source_name, set_watch=False)
@@ -153,13 +178,12 @@ class Configuration:
 
     def write_connection(self, source_value, destination):
         logging.info('writing a connection...')
-        destination_attr = destination.split('.')
+        destination_fb_name, destination_name = self.split_endpoint(destination)
         
-        destination_fb = self.get_fb(destination_attr[0])
-        destination_name = destination_attr[1]
+        destination_fb = self.get_fb(destination_fb_name)
         
         if not destination_fb:
-            logging.error("No block matches {0}".format(destination_attr[0]))
+            logging.error("No block matches {0}".format(destination_fb_name))
             logging.error("Couldnt write connection")
             return
 

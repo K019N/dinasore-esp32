@@ -8,15 +8,21 @@ from utils.is_micropython import is_micropython
 class FBResources:
 
     def __init__(self, fb_type):
-        self.fb_type = fb_type
+        self.fb_type = self.normalize_fb_type(fb_type)
 
         if is_micropython():
-            self.py_path = '/dinasore/resources/function_blocks/' + fb_type + '.py'
-            self.fbt_path = '/dinasore/resources/function_blocks/' + fb_type + '.fbt'
+            self.py_path = '/dinasore/resources/function_blocks/' + self.fb_type + '.py'
+            self.fbt_path = '/dinasore/resources/function_blocks/' + self.fb_type + '.fbt'
         else:
             base_dir = os.path.dirname(os.path.dirname(__file__))
-            self.py_path = os.path.join(base_dir, "resources", "function_blocks", fb_type + ".py")
-            self.fbt_path = os.path.join(base_dir, "resources", "function_blocks", fb_type + ".fbt")
+            self.py_path = os.path.join(base_dir, "resources", "function_blocks", self.fb_type + ".py")
+            self.fbt_path = os.path.join(base_dir, "resources", "function_blocks", self.fb_type + ".fbt")
+
+    @staticmethod
+    def normalize_fb_type(fb_type):
+        if fb_type is None:
+            return fb_type
+        return fb_type.rsplit('::', 1)[-1]
 
     def import_fb(self):
         logging.info('importing fb python file and definition file...')
