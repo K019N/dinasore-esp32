@@ -1,6 +1,7 @@
 import _thread
 import time
 from core import fb_interface, logging
+from core import thread_utils
 
 
 class FB(fb_interface.FBInterface):
@@ -19,6 +20,7 @@ class FB(fb_interface.FBInterface):
     def start(self):
         logging.info('starting fb {0}...'.format(self.fb_name))
         try:
+            thread_utils.set_thread_stack_size(thread_utils.FB_THREAD_STACK)
             self.thread_id = _thread.start_new_thread(self.run, ())
             self.running = True
             return self.thread_id
