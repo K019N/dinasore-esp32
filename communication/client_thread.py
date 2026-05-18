@@ -1,6 +1,7 @@
 import _thread
 from core import logging
 from core import request_profiler
+from core import thread_utils
 import time
 
 
@@ -15,6 +16,7 @@ class ClientThread:
 
     def start(self):
         try:
+            thread_utils.set_thread_stack_size(thread_utils.CLIENT_THREAD_STACK)
             self.thread_id = _thread.start_new_thread(self.run, ())
             logging.info('Started thread for client {0}'.format(self.name))
             return self.thread_id
@@ -28,7 +30,7 @@ class ClientThread:
             # Receive the data in small chunks and retransmit it
             while True:
                 data = self.connection.recv(2048)
-                logging.info('Received {0}'.format(data))
+                logging.info('Received request bytes: {0}'.format(len(data) if data else 0))
                 if data:
                     total_start = request_profiler.start_timer()
                     process_start = request_profiler.start_timer()
@@ -36,7 +38,7 @@ class ClientThread:
                     try:
                         response = self.parse_request(data)
                         process_ms = request_profiler.elapsed_ms(process_start)
-                        logging.info('Sending response {0}'.format(response))
+                        logging.info('Sending response bytes: {0}'.format(len(response) if response else 0))
                         self.connection.sendall(response)
                         total_ms = request_profiler.elapsed_ms(total_start)
                         request_profiler.log_request(self.name, data, response, process_ms, total_ms)
