@@ -1,0 +1,19 @@
+<FBType Name="ESP32_PIN" Comment="Change pin state">
+    <InterfaceList>
+        <EventInputs>
+            <Event Name="REQ" Type="Event" Comment="Normal Execution Request">
+            </Event>
+        </EventInputs>
+        <EventOutputs>
+            <Event Name="CNF" Type="Event" Comment="Execution Confirmation">
+            </Event>
+        </EventOutputs>
+        <InputVars>
+            <VarDeclaration Name="VALUE" Type="BOOL" Comment="GPIO Value"/>
+            <VarDeclaration Name="NUM" Type="INT" Comment="GPIO Number"/>
+        </InputVars>
+        <OutputVars>
+            <VarDeclaration Name="STATUS" Type="STRING" Comment="Execution Status"/>
+        </OutputVars>
+    </InterfaceList>
+</FBType>

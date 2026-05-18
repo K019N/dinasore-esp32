@@ -1,0 +1,15 @@
+<FBType Name="DELAY_MS" Comment="Simple FB with one algorithm">
+    <InterfaceList>
+        <EventInputs>
+            <Event Name="REQ" Type="Event" Comment="Normal Execution Request">
+            </Event>
+        </EventInputs>
+        <EventOutputs>
+            <Event Name="CNF" Type="Event" Comment="Execution Confirmation">
+            </Event>
+        </EventOutputs>
+        <InputVars>
+            <VarDeclaration Name="IN" Type="INT" Comment="Delay Time ms"/>
+        </InputVars>
+    </InterfaceList>
+</FBType>
