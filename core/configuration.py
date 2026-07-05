@@ -226,16 +226,41 @@ class Configuration:
 
     def start_work(self):
         logging.info('starting the fb flow...')
-        for fb_name, fb_element in self.fb_dictionary.items():
-            if fb_name != 'START':
-                fb_element.start()
-        
         if not self.get_fb('START'):
             logging.error("CRITICAL no START block found")
             return
-        
-        outputs = self.get_fb('START').fb_obj.schedule()
-        self.get_fb('START').update_outputs(outputs)
+
+        start_fb = self.get_fb('START')
+        start_fb.start()
+
+        try:
+            outputs = start_fb.fb_obj.schedule()
+            start_fb.update_outputs(outputs)
+        except Exception as exc:
+            logging.error('start block execution failed: {0}'.format(exc))
+            return
+
+        max_iterations = max(10, len(self.fb_dictionary) * 4)
+        for _ in range(max_iterations):
+            progressed = False
+            for fb_name, fb_element in list(self.fb_dictionary.items()):
+                if fb_name == 'START':
+                    continue
+
+                if not getattr(fb_element, 'event_queue', None):
+                    continue
+
+                if not fb_element.is_alive():
+                    fb_element.start()
+
+                try:
+                    fb_element.run()
+                    progressed = True
+                except Exception as exc:
+                    logging.error('fb execution failed for {0}: {1}'.format(fb_name, exc))
+
+            if not progressed:
+                break
 
     def stop_work(self):
         logging.info('stopping the fb flow...')
