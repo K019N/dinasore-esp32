@@ -35,7 +35,10 @@ class TcpServer:
         connection, client_address = self.sock.accept()
 
         thread = client_thread.ClientThread(connection, client_address, self.config_m)
-        thread.start()
+        try:
+            thread.run()
+        except Exception as exc:
+            logging.error('client handling failed: {0}'.format(exc))
 
     def stop_server(self):
         self.sock.close()

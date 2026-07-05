@@ -6,6 +6,91 @@ import time
 from custom_parser.xml import ElementTree as ETree
 
 
+GENERIC_TYPES = {
+    'ANY', 'ANY_ELEMENTARY', 'ANY_MAGNITUDE', 'ANY_NUM',
+    'ANY_INTEGRAL', 'ANY_REAL', 'ANY_INT', 'ANY_UNSIGNED',
+    'ANY_SIGNED', 'ANY_BIT', 'ANY_CHARS', 'ANY_CHAR',
+    'ANY_STRING', 'ANY_DATE',
+}
+
+INT_TYPES = {'SINT', 'INT', 'DINT', 'LINT', 'USINT', 'UINT', 'UDINT', 'ULINT', 'BYTE', 'WORD', 'DWORD', 'LWORD'}
+REAL_TYPES = {'REAL', 'LREAL'}
+
+
+def _strip_type_prefix(value):
+    text = str(value)
+    if '#' in text:
+        return text.split('#', 1)
+    return None, text
+
+
+def _format_concrete_value(value_type, value):
+    value_type = value_type.upper()
+    prefix, raw_value = _strip_type_prefix(value)
+
+    if value_type == 'BOOL':
+        text = str(raw_value).strip().upper()
+        return 'TRUE' if text in ('1', 'TRUE', 'T', 'YES', 'Y', 'ON') else 'FALSE'
+
+    if value_type in INT_TYPES:
+        try:
+            return str(int(raw_value))
+        except (ValueError, TypeError):
+            return str(raw_value)
+
+    if value_type in REAL_TYPES:
+        try:
+            return str(float(raw_value))
+        except (ValueError, TypeError):
+            return str(raw_value)
+
+    if value_type == 'STRING':
+        return "'{0}'".format(raw_value)
+
+    if value_type in ('WSTRING', 'WCHAR'):
+        return '"{0}"'.format(raw_value)
+
+    if value_type == 'CHAR':
+        return "'{0}'".format(raw_value)
+
+    if value_type in ('TIME', 'DATE', 'TIME_OF_DAY', 'DATE_AND_TIME'):
+        return str(value)
+
+    return "'{0}'".format(value) if isinstance(value, str) else str(value)
+
+
+def _infer_concrete_type(value):
+    if isinstance(value, bool):
+        return 'BOOL'
+    if isinstance(value, float):
+        return 'LREAL'
+    if isinstance(value, int):
+        if -32768 <= value <= 32767:
+            return 'INT'
+        if -2147483648 <= value <= 2147483647:
+            return 'DINT'
+        return 'LINT' if value < 0 else 'ULINT'
+
+    prefix, raw_value = _strip_type_prefix(value)
+    if prefix:
+        return prefix.strip().upper()
+    return 'CHAR' if len(str(raw_value)) == 1 else 'STRING'
+
+
+def format_value_for_watch(value_type, value):
+    value_type = value_type.upper()
+    if value_type not in GENERIC_TYPES:
+        return _format_concrete_value(value_type, value)
+
+    concrete_type = _infer_concrete_type(value)
+    formatted = _format_concrete_value(concrete_type, value)
+
+    if concrete_type in ('TIME', 'DATE', 'TIME_OF_DAY', 'DATE_AND_TIME'):
+        return formatted
+
+    return '{0}#{1}'.format(concrete_type, formatted)
+
+
 class MicroEvent:
     def __init__(self):
         self._flag = False
@@ -260,10 +345,17 @@ class FBInterface:
     def update_outputs(self, outputs):
         logging.info('updating the outputs...')
 
+        if outputs is None:
+            outputs = []
+
         # Converts the second part of the list to variables
         for index, var_name in enumerate(self.output_vars):
+            output_index = index + len(self.output_events)
+            if output_index >= len(outputs):
+                continue
+
             # Second part of the list delimited by the events dictionary len
-            new_value = outputs[index + len(self.output_events)]
+            new_value = outputs[output_index]
 
             # Updates the var value
             self.set_attr(var_name, new_value=new_value)
@@ -276,6 +368,8 @@ class FBInterface:
 
         # Converts the first part of the list to events
         for index, event_name in enumerate(self.output_events):
+            if index >= len(outputs):
+                continue
             value = outputs[index]
             self.set_attr(event_name, new_value=value)
             # Verifies if exist any connection
@@ -297,7 +391,7 @@ class FBInterface:
             v_type, value, is_watch = self.read_attr(var_name)
             if is_watch and (value is not None):
                 port = ETree.Element('Port', {'name': var_name})
-                ETree.SubElement(port, 'Data', {'value': str(value),
+                ETree.SubElement(port, 'Data', {'value': format_value_for_watch(v_type, value),
                                                 'forced': 'false'})
                 fb_root.append(port)
 
@@ -310,8 +404,7 @@ class FBInterface:
             v_type, value, is_watch = self.read_attr(event_name)
             if is_watch and (value is not None):
                 port = ETree.Element('Port', {'name': event_name})
-                ETree.SubElement(port, 'Data', {'time': str(int((time.time() * 1000) - start_time)),
-                                                'value': str(value)})
+                ETree.SubElement(port, 'Data', {'value': str(value)})
                 fb_root.append(port)
 
         # Gets the number of watches

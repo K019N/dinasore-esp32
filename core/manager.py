@@ -28,6 +28,7 @@ class Manager:
 
     def get_config(self, config_id):
         fb_element = None
+        config_id = self.normalize_fb_name(config_id)
         try:
             fb_element = self.config_dictionary[config_id]
         except KeyError as error:
@@ -36,14 +37,36 @@ class Manager:
         return fb_element
 
     def set_config(self, config_id, config_element):
+        config_id = self.normalize_fb_name(config_id)
         self.config_dictionary[config_id] = config_element
+
+    @staticmethod
+    def normalize_fb_name(fb_name):
+        if fb_name is None:
+            return fb_name
+        return fb_name.rsplit('.', 1)[-1]
+
+    @staticmethod
+    def normalize_fb_type(fb_type):
+        if fb_type is None:
+            return fb_type
+        return fb_type.rsplit('::', 1)[-1]
+
+    @staticmethod
+    def normalize_endpoint(endpoint):
+        if endpoint is None:
+            return endpoint
+        parts = endpoint.split('.')
+        if len(parts) >= 2:
+            return '{0}.{1}'.format(parts[-2], parts[-1])
+        return endpoint
 
     def store_request(self, req, config_id=None):
         # converts the type
         if type(req) == bytes:
             req = req.decode('utf-8')
         # removes the new line characters
-        req = re.sub('\s+', ' ', req)
+        req = re.sub(r'\s+', ' ', req)
         # if is active the fboot writing
         if self.write_fboot:
             # adds the request with no config name
@@ -66,18 +89,18 @@ class Manager:
                 # Create configuration (function block)
                 if child.tag == 'FB':
                     fb = ETree.fromstring(child)
-                    conf_name = fb.attrib['Name']
-                    conf_type = fb.attrib['Type']
-                    # Stops the configuration
-                    for config_name, config in self.config_dictionary.items():
+                    conf_name = self.normalize_fb_name(fb.attrib['Name'])
+                    conf_type = self.normalize_fb_type(fb.attrib['Type'])
+                    # Stops and clears previous configurations to free ESP32 resources
+                    for config_name, config in list(self.config_dictionary.items()):
                         config.stop_work()
-                    # self.config_dictionary = dict()
-                    if conf_name not in self.config_dictionary:
-                        # Creates the configuration
-                        config = configuration.Configuration(conf_name, conf_type)
-                        self.write_fboot = True
-                        self.set_config(conf_name, config)
-                        self.store_request(xml_data)
+                    self.config_dictionary = {}
+                    gc.collect()
+                    # Creates the configuration
+                    config = configuration.Configuration(conf_name, conf_type)
+                    self.write_fboot = True
+                    self.set_config(conf_name, config)
+                    self.store_request(xml_data)
 
         elif action == 'QUERY':
             pass
@@ -105,12 +128,13 @@ class Manager:
             for child in element.children:
                 # Kill a configuration (could be a fb)
                 if child.tag == 'FB':
-                    fb_name = child.attrib['Name']
+                    fb_name = self.normalize_fb_name(child.attrib['Name'])
                     # Checks if exists the configuration
                     if fb_name in self.config_dictionary:
                         # Stops the configuration
-                        for config_name, config in self.config_dictionary.items():
+                        for config_name, config in list(self.config_dictionary.items()):
                             config.stop_work()
+                        self.config_dictionary = {}
                         # Release memory
                         gc.collect()
             # If we want to kill the device
@@ -122,12 +146,10 @@ class Manager:
             for child in element.children:
                 # Deletes a configuration (could be a fb)
                 if child.tag == 'FB':
-                    # conf_name = child.attrib['Name']
-                    # Checks if exists the configuration
-                    # if conf_name in self.config_dictionary:
-                    self.config_dictionary = dict()
-                    # Deletes the configuration
-                    # self.stop_all()
+                    # Stops any running configs before clearing the dictionary
+                    for config_name, config in list(self.config_dictionary.items()):
+                        config.stop_work()
+                    self.config_dictionary = {}
                     # Release memory
                     gc.collect()
             # reset the program
@@ -149,6 +171,7 @@ class Manager:
         element = ETree.fromstring(xml_data)
         action = element.attrib['Action']
         request_id = element.attrib['ID']
+        config_id = self.normalize_fb_name(config_id)
 
         if action == 'CREATE':
             # Iterate over the list of children
@@ -157,7 +180,7 @@ class Manager:
                 if child.tag == 'FB':
                     fb = ETree.fromstring(child)
                     fb_name = fb.attrib['Name']
-                    fb_type = fb.attrib['Type']
+                    fb_type = self.normalize_fb_type(fb.attrib['Type'])
                     
                     if not self.get_config(config_id):
                         logging.error("Config not exists while CREATE.FB")
@@ -167,8 +190,8 @@ class Manager:
 
                 # Create connection
                 elif child.tag == 'Connection':
-                    connection_source = child.attrib['Source']
-                    connection_destination = child.attrib['Destination']
+                    connection_source = self.normalize_endpoint(child.attrib['Source'])
+                    connection_destination = self.normalize_endpoint(child.attrib['Destination'])
                     if not self.get_config(config_id):
                         logging.error("Config not exists while CREATE.Connection")
                         continue
@@ -177,8 +200,8 @@ class Manager:
 
                 # Create watch
                 elif child.tag == 'Watch':
-                    watch_source = child.attrib['Source']
-                    watch_destination = child.attrib['Destination']
+                    watch_source = self.normalize_endpoint(child.attrib['Source'])
+                    watch_destination = self.normalize_endpoint(child.attrib['Destination'])
                     self.get_config(config_id).create_watch(watch_source, watch_destination)
 
         elif action == 'DELETE':
@@ -187,8 +210,8 @@ class Manager:
                 # Delete watch
                 if child.tag == 'Watch':
                     watch = ETree.fromstring(child)
-                    watch_source = watch.attrib['Source']
-                    watch_destination = watch.attrib['Destination']
+                    watch_source = self.normalize_endpoint(watch.attrib['Source'])
+                    watch_destination = self.normalize_endpoint(watch.attrib['Destination'])
                     self.get_config(config_id).delete_watch(watch_source, watch_destination)
 
         elif action == 'START':
@@ -210,7 +233,7 @@ class Manager:
                 if child.tag == 'Connection':
                     conn = child
                     connection_source = conn.attrib['Source']
-                    connection_destination = conn.attrib['Destination']
+                    connection_destination = self.normalize_endpoint(conn.attrib['Destination'])
                     if not self.get_config(config_id):
                         logging.error("Config not exists while WRITE")
                         continue

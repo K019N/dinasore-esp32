@@ -1,5 +1,6 @@
 import _thread
 from core import logging
+from core import thread_utils
 import time
 
 
@@ -14,11 +15,12 @@ class ClientThread:
 
     def start(self):
         try:
-            self.thread_id = _thread.start_new_thread(self.run, ())
-            logging.info('Started thread for client {0}'.format(self.name))
-            return self.thread_id
+            self.run()
+            logging.info('Handled client {0} inline'.format(self.name))
+            return 1
         except Exception as e:
-            logging.error('Failed to start thread for {0}: {1}'.format(self.name, e))
+            logging.error('Failed to handle client {0}: {1}'.format(self.name, e))
+            self.thread_id = None
             return None
 
     def run(self):
@@ -27,11 +29,15 @@ class ClientThread:
             # Receive the data in small chunks and retransmit it
             while True:
                 data = self.connection.recv(2048)
-                logging.info('Received {0}'.format(data))
+                logging.info('Received request bytes: {0}'.format(len(data) if data else 0))
                 if data:
-                    response = self.parse_request(data)
-                    logging.info('Sending response {0}'.format(response))
-                    self.connection.sendall(response)
+                    response = None
+                    try:
+                        response = self.parse_request(data)
+                        logging.info('Sending response bytes: {0}'.format(len(response) if response else 0))
+                        self.connection.sendall(response)
+                    except Exception as e:
+                        raise
                 else:
                     logging.info('No more data from {0}'.format(self.client_address))
                     break
@@ -48,16 +54,30 @@ class ClientThread:
 
     def parse_request(self, data):
         config_id_size = int(data[1:3].hex(), 16)
+        request_start = data.find(b'<Request')
+
+        if request_start >= 0:
+            xml_data = self.remove_service_symbols(data[request_start:].decode('utf-8'))
+        else:
+            xml_data = None
 
         if config_id_size == 0:
-            data_str = data[6:].decode('utf-8')
+            data_str = xml_data if xml_data is not None else data[6:].decode('utf-8')
             response = self.config_m.parse_general(data_str)
         else:
             config_id = data[3: config_id_size + 3].decode('utf-8')
-            data_str = data[config_id_size + 3 + 3:].decode('utf-8')
+            data_str = xml_data if xml_data is not None else data[config_id_size + 3 + 3:].decode('utf-8')
             response = self.config_m.parse_configuration(data_str, config_id)
 
         return response
+
+    @staticmethod
+    def remove_service_symbols(data):
+        if "&apos;" in data:
+            data = data.replace('&apos;', '')
+        elif "&quote;" in data:
+            data = data.replace('&quote;', '')
+        return data
 
     def is_alive(self):
         return True 

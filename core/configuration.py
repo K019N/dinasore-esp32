@@ -1,3 +1,4 @@
+import gc
 from core import fb_resources
 from core import fb
 from core import fb_interface
@@ -9,11 +10,32 @@ class Configuration:
 
     def __init__(self, config_id, config_type):
         self.fb_dictionary = dict()
-        self.config_id = config_id
+        self.config_id = self.normalize_fb_name(config_id)
+        self.stopped = False
         self.create_fb('START', config_type)
+
+    @staticmethod
+    def normalize_fb_name(fb_name):
+        if fb_name is None:
+            return fb_name
+        return fb_name.rsplit('.', 1)[-1]
+
+    @staticmethod
+    def normalize_fb_type(fb_type):
+        if fb_type is None:
+            return fb_type
+        return fb_type.rsplit('::', 1)[-1]
+
+    @staticmethod
+    def split_endpoint(endpoint):
+        parts = endpoint.split('.')
+        if len(parts) < 2:
+            return endpoint, None
+        return parts[-2], parts[-1]
 
     def get_fb(self, fb_name):
         fb_element = None
+        fb_name = self.normalize_fb_name(fb_name)
         try:
             fb_element = self.fb_dictionary[fb_name]
         except KeyError as error:
@@ -23,13 +45,18 @@ class Configuration:
         return fb_element
 
     def set_fb(self, fb_name, fb_element):
+        fb_name = self.normalize_fb_name(fb_name)
         self.fb_dictionary[fb_name] = fb_element
 
     def exists_fb(self, fb_name):
+        fb_name = self.normalize_fb_name(fb_name)
         return fb_name in self.fb_dictionary
 
     def create_fb(self, fb_name, fb_type, init=True):
         logging.info('creating a new fb...')
+        display_fb_name = fb_name
+        fb_name = self.normalize_fb_name(fb_name)
+        fb_type = self.normalize_fb_type(fb_type)
 
         fb_res = fb_resources.FBResources(fb_type)
         exists_fb = fb_res.exists_fb()
@@ -81,9 +108,9 @@ class Configuration:
                     )
 
         # Создание FB-элемента
-        fb_element = fb.FB(fb_name, fb_type, fb_obj, fb_definition)
+        fb_element = fb.FB(display_fb_name, fb_type, fb_obj, fb_definition)
         self.set_fb(fb_name, fb_element)
-        logging.info('created fb type: {0}, instance: {1}'.format(fb_type, fb_name))
+        logging.info('created fb type: {0}, instance: {1}'.format(fb_type, display_fb_name))
 
         # Инициализация (если требуется)
         if init:
@@ -101,16 +128,19 @@ class Configuration:
     def create_connection(self, source, destination):
         logging.info('creating a new connection...')
 
-        source_attr = source.split('.')
-        destination_attr = destination.split('.')
+        source_fb_name, source_name = self.split_endpoint(source)
+        destination_fb_name, destination_name = self.split_endpoint(destination)
 
-        source_fb = self.get_fb(source_attr[0])
-        source_name = source_attr[1]
-        destination_fb = self.get_fb(destination_attr[0])
-        destination_name = destination_attr[1]
+        source_fb = self.get_fb(source_fb_name)
+        destination_fb = self.get_fb(destination_fb_name)
         
         if not destination_fb:
-            logging.error("No block matches {0}".format(destination_attr[0]))
+            logging.error("No block matches {0}".format(destination_fb_name))
+            logging.error("Couldnt create connection")
+            return
+
+        if not source_fb:
+            logging.error("No block matches {0}".format(source_fb_name))
             logging.error("Couldnt create connection")
             return
 
@@ -122,9 +152,8 @@ class Configuration:
     def create_watch(self, source, destination):
         logging.info('creating a new watch...')
 
-        source_attr = source.split(sep='.')
-        source_fb = self.get_fb(source_attr[0])
-        source_name = source_attr[1]
+        source_fb_name, source_name = self.split_endpoint(source)
+        source_fb = self.get_fb(source_fb_name)
 
         try:
             source_fb.set_attr(source_name, set_watch=True)
@@ -138,9 +167,8 @@ class Configuration:
     def delete_watch(self, source, destination):
         logging.info('deleting a new watch...')
 
-        source_attr = source.split(sep='.')
-        source_fb = self.get_fb(source_attr[0])
-        source_name = source_attr[1]
+        source_fb_name, source_name = self.split_endpoint(source)
+        source_fb = self.get_fb(source_fb_name)
 
         try:
             source_fb.set_attr(source_name, set_watch=False)
@@ -153,13 +181,12 @@ class Configuration:
 
     def write_connection(self, source_value, destination):
         logging.info('writing a connection...')
-        destination_attr = destination.split('.')
+        destination_fb_name, destination_name = self.split_endpoint(destination)
         
-        destination_fb = self.get_fb(destination_attr[0])
-        destination_name = destination_attr[1]
+        destination_fb = self.get_fb(destination_fb_name)
         
         if not destination_fb:
-            logging.error("No block matches {0}".format(destination_attr[0]))
+            logging.error("No block matches {0}".format(destination_fb_name))
             logging.error("Couldnt write connection")
             return
 
@@ -182,6 +209,29 @@ class Configuration:
             destination_fb.set_attr(destination_name, value_to_set)
 
         logging.info('connection ({0}) configured with the value {1}'.format(destination, source_value))
+        self.process_pending_events()
+
+    def process_pending_events(self):
+        progressed = True
+        while progressed and not self.stopped:
+            progressed = False
+            for fb_name, fb_element in list(self.fb_dictionary.items()):
+                if self.stopped:
+                    break
+                if fb_name == 'START':
+                    continue
+
+                if not getattr(fb_element, 'event_queue', None):
+                    continue
+
+                if not fb_element.is_alive():
+                    fb_element.start()
+
+                try:
+                    fb_element.run()
+                    progressed = True
+                except Exception as exc:
+                    logging.error('fb execution failed for {0}: {1}'.format(fb_name, exc))
 
     def read_watches(self, start_time):
         logging.info('reading watches...')
@@ -199,22 +249,31 @@ class Configuration:
 
     def start_work(self):
         logging.info('starting the fb flow...')
-        for fb_name, fb_element in self.fb_dictionary.items():
-            if fb_name != 'START':
-                fb_element.start()
-        
         if not self.get_fb('START'):
             logging.error("CRITICAL no START block found")
             return
-        
-        outputs = self.get_fb('START').fb_obj.schedule()
-        self.get_fb('START').update_outputs(outputs)
+
+        self.stopped = False
+        start_fb = self.get_fb('START')
+        start_fb.start()
+
+        try:
+            outputs = start_fb.fb_obj.schedule()
+            start_fb.update_outputs(outputs)
+        except Exception as exc:
+            logging.error('start block execution failed: {0}'.format(exc))
+            return
+
+        self.process_pending_events()
 
     def stop_work(self):
         logging.info('stopping the fb flow...')
-        for fb_name, fb_element in self.fb_dictionary.items():
+        self.stopped = True
+        for fb_name, fb_element in list(self.fb_dictionary.items()):
             if fb_name != 'START':
                 fb_element.stop()
+        self.fb_dictionary = {}
+        gc.collect()
 
     @staticmethod
     def convert_type(value, value_type):
