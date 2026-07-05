@@ -12,6 +12,7 @@ class Configuration:
     def __init__(self, config_id, config_type):
         self.fb_dictionary = dict()
         self.config_id = self.normalize_fb_name(config_id)
+        self.stopped = False
         self.create_fb('START', config_type)
 
     @staticmethod
@@ -230,6 +231,7 @@ class Configuration:
             logging.error("CRITICAL no START block found")
             return
 
+        self.stopped = False
         start_fb = self.get_fb('START')
         start_fb.start()
 
@@ -240,10 +242,11 @@ class Configuration:
             logging.error('start block execution failed: {0}'.format(exc))
             return
 
-        max_iterations = max(10, len(self.fb_dictionary) * 4)
-        for _ in range(max_iterations):
+        while not self.stopped:
             progressed = False
             for fb_name, fb_element in list(self.fb_dictionary.items()):
+                if self.stopped:
+                    break
                 if fb_name == 'START':
                     continue
 
@@ -264,6 +267,7 @@ class Configuration:
 
     def stop_work(self):
         logging.info('stopping the fb flow...')
+        self.stopped = True
         for fb_name, fb_element in list(self.fb_dictionary.items()):
             if fb_name != 'START':
                 fb_element.stop()
