@@ -46,11 +46,11 @@ class XMLParser:
                             
                             element = Element(tag_name, attribs)
                             
-                            if self.root is None:
+                            if not self.root:
                                 self.root = element
                             
                             # Добавляем к текущему родителю, если он есть
-                            if self.current is not None:
+                            if self.current:
                                 self.current.children.append(element)
                             
                             if not self_closure:
@@ -63,19 +63,19 @@ class XMLParser:
                 end = data.find('<', i)
                 if end != -1:
                     text = data[i:end]
-                    if text and self.current is not None:
+                    if text and self.current:
                         self.text_buffer.append(text)
                     i = end
                 else:
                     # Остаток данных - текст
                     text = data[i:]
-                    if text and self.current is not None:
+                    if text and self.current:
                         self.text_buffer.append(text)
                     break
     
     def _flush_text_buffer(self):
         """Сохраняет накопленный текст в текущий элемент"""
-        if self.text_buffer and self.current is not None:
+        if self.text_buffer and self.current:
             text_content = ''.join(self.text_buffer)
             # Если у элемента уже есть текст, добавляем к нему
             if self.current.text:
@@ -124,12 +124,6 @@ class ElementClass:
     def __iter__(self):
         """Для итерации по дочерним элементам"""
         return iter(self.children)
-
-    def __len__(self):
-        return len(self.children)
-
-    def append(self, element):
-        self.children.append(element)
     
     def getroot(self):
         """Добавляем метод getroot для совместимости с xml.etree.ElementTree"""
@@ -217,38 +211,32 @@ def parse(file_or_path):
         return fromstring(content)
 
 def tostring(element, encoding='utf-8'):
-    def _escape_attr(value):
-        value = str(value)
-        return (value.replace('&', '&amp;')
-                     .replace('"', '&quot;')
-                     .replace('<', '&lt;')
-                     .replace('>', '&gt;'))
-
-    def _escape_text(value):
-        value = str(value)
-        return value.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-
     def _to_string(elem, level=0):
-        result = [f'<{elem.tag}']
+        indent = '  ' * level
+        result = [f'{indent}<{elem.tag}']
         
         # Атрибуты
         for key, value in elem.attrib.items():
-            result.append(f' {key}="{_escape_attr(value)}"')
+            result.append(f' {key}="{value}"')
         
         has_content = elem.text or elem.children
         if has_content:
             result.append('>')
             if elem.text:
                 # Экранируем специальные XML символы в тексте
-                result.append(_escape_text(elem.text))
+                text = elem.text
+                text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                result.append(text)
             
             if elem.children:
+                result.append('\n')
                 for child in elem.children:
                     result.append(_to_string(child, level + 1))
+                result.append(indent)
             
-            result.append(f'</{elem.tag}>')
+            result.append(f'</{elem.tag}>\n')
         else:
-            result.append(' />')
+            result.append('/>\n')
         
         return ''.join(result)
     

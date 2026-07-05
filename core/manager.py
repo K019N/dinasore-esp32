@@ -180,7 +180,7 @@ class Manager:
                 # Create function block
                 if child.tag == 'FB':
                     fb = ETree.fromstring(child)
-                    fb_name = fb.attrib['Name']
+                    fb_name = self.normalize_fb_name(fb.attrib['Name'])
                     fb_type = self.normalize_fb_type(fb.attrib['Type'])
                     
                     if not self.get_config(config_id):

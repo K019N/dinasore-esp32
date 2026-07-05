@@ -1,5 +1,6 @@
-[2026-05-18 00:15:41][ERROR][main] error while updating outputs: 'NoneType' object is not subscriptable
-[2026-05-18 00:15:41][ERROR][main] error while updating outputs: 'NoneType' object is not subscriptable
-[2026-05-18 00:16:40][ERROR][main] error while updating outputs: 'NoneType' object is not subscriptable
-[2026-05-18 00:16:40][ERROR][main] error while updating outputs: 'NoneType' object is not subscriptable
-[2026-05-18 00:16:40][ERROR][main] error while updating outputs: 'NoneType' object is not subscriptable
+[2026-05-17 21:49:49][ERROR][main] error while updating outputs: 'NoneType' object is not subscriptable
+[2026-05-17 21:49:49][ERROR][main] error while updating outputs: 'NoneType' object is not subscriptable
+[2026-05-17 21:49:49][ERROR][main] error while updating outputs: 'NoneType' object is not subscriptable
+[2026-05-17 21:50:02][ERROR][main] error while updating outputs: 'NoneType' object is not subscriptable
+[2026-05-17 21:50:02][ERROR][main] Error in client thread 127.0.0.1:56210: 'ElementClass' object has no attribute 'append'
+[2026-05-17 21:50:15][ERROR][main] Error in client thread 127.0.0.1:56359: 'ElementClass' object has no attribute 'append'
