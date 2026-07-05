@@ -1,5 +1,4 @@
 import gc
-
 from core import fb_resources
 from core import fb
 from core import fb_interface
@@ -210,6 +209,29 @@ class Configuration:
             destination_fb.set_attr(destination_name, value_to_set)
 
         logging.info('connection ({0}) configured with the value {1}'.format(destination, source_value))
+        self.process_pending_events()
+
+    def process_pending_events(self):
+        progressed = True
+        while progressed and not self.stopped:
+            progressed = False
+            for fb_name, fb_element in list(self.fb_dictionary.items()):
+                if self.stopped:
+                    break
+                if fb_name == 'START':
+                    continue
+
+                if not getattr(fb_element, 'event_queue', None):
+                    continue
+
+                if not fb_element.is_alive():
+                    fb_element.start()
+
+                try:
+                    fb_element.run()
+                    progressed = True
+                except Exception as exc:
+                    logging.error('fb execution failed for {0}: {1}'.format(fb_name, exc))
 
     def read_watches(self, start_time):
         logging.info('reading watches...')
@@ -242,28 +264,7 @@ class Configuration:
             logging.error('start block execution failed: {0}'.format(exc))
             return
 
-        while not self.stopped:
-            progressed = False
-            for fb_name, fb_element in list(self.fb_dictionary.items()):
-                if self.stopped:
-                    break
-                if fb_name == 'START':
-                    continue
-
-                if not getattr(fb_element, 'event_queue', None):
-                    continue
-
-                if not fb_element.is_alive():
-                    fb_element.start()
-
-                try:
-                    fb_element.run()
-                    progressed = True
-                except Exception as exc:
-                    logging.error('fb execution failed for {0}: {1}'.format(fb_name, exc))
-
-            if not progressed:
-                break
+        self.process_pending_events()
 
     def stop_work(self):
         logging.info('stopping the fb flow...')
