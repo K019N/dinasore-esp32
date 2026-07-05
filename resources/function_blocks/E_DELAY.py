@@ -12,9 +12,7 @@ class E_DELAY:
             elif 'ns' in DT:
                 delay = float("".join(filter(str.isdigit, DT))) / 10**9
             else:
-                delay = "".join(filter(str.isdigit, DT))
-
-            print(delay)
+                delay = float("".join(filter(str.isdigit, DT)))
             time.sleep(delay)
             return [event_value]
         elif event_name == 'STOP':
