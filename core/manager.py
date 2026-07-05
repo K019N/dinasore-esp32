@@ -91,16 +91,16 @@ class Manager:
                     fb = ETree.fromstring(child)
                     conf_name = self.normalize_fb_name(fb.attrib['Name'])
                     conf_type = self.normalize_fb_type(fb.attrib['Type'])
-                    # Stops the configuration
-                    for config_name, config in self.config_dictionary.items():
+                    # Stops and clears previous configurations to free ESP32 resources
+                    for config_name, config in list(self.config_dictionary.items()):
                         config.stop_work()
-                    # self.config_dictionary = dict()
-                    if conf_name not in self.config_dictionary:
-                        # Creates the configuration
-                        config = configuration.Configuration(conf_name, conf_type)
-                        self.write_fboot = True
-                        self.set_config(conf_name, config)
-                        self.store_request(xml_data)
+                    self.config_dictionary = {}
+                    gc.collect()
+                    # Creates the configuration
+                    config = configuration.Configuration(conf_name, conf_type)
+                    self.write_fboot = True
+                    self.set_config(conf_name, config)
+                    self.store_request(xml_data)
 
         elif action == 'QUERY':
             pass
@@ -132,8 +132,9 @@ class Manager:
                     # Checks if exists the configuration
                     if fb_name in self.config_dictionary:
                         # Stops the configuration
-                        for config_name, config in self.config_dictionary.items():
+                        for config_name, config in list(self.config_dictionary.items()):
                             config.stop_work()
+                        self.config_dictionary = {}
                         # Release memory
                         gc.collect()
             # If we want to kill the device
@@ -145,12 +146,10 @@ class Manager:
             for child in element.children:
                 # Deletes a configuration (could be a fb)
                 if child.tag == 'FB':
-                    # conf_name = child.attrib['Name']
-                    # Checks if exists the configuration
-                    # if conf_name in self.config_dictionary:
-                    self.config_dictionary = dict()
-                    # Deletes the configuration
-                    # self.stop_all()
+                    # Stops any running configs before clearing the dictionary
+                    for config_name, config in list(self.config_dictionary.items()):
+                        config.stop_work()
+                    self.config_dictionary = {}
                     # Release memory
                     gc.collect()
             # reset the program

@@ -1,2 +1,0 @@
-<!-- Create a watch -->
-<Request ID="3" Action="CREATE"><Watch Source="E_EXAMPLE_1.EO0" Destination="*" /></Request>

@@ -1,3 +1,5 @@
+import gc
+
 from core import fb_resources
 from core import fb
 from core import fb_interface
@@ -237,9 +239,11 @@ class Configuration:
 
     def stop_work(self):
         logging.info('stopping the fb flow...')
-        for fb_name, fb_element in self.fb_dictionary.items():
+        for fb_name, fb_element in list(self.fb_dictionary.items()):
             if fb_name != 'START':
                 fb_element.stop()
+        self.fb_dictionary = {}
+        gc.collect()
 
     @staticmethod
     def convert_type(value, value_type):

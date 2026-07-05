@@ -26,6 +26,8 @@ class FB(fb_interface.FBInterface):
             return self.thread_id
         except Exception as e:
             logging.error('Failed to start fb thread: {0}'.format(e))
+            self.running = False
+            self.thread_id = None
             return None
 
     def run(self):
@@ -46,6 +48,8 @@ class FB(fb_interface.FBInterface):
 
             try:
                 outputs = self.fb_obj.schedule(*inputs)
+                if outputs is None:
+                    outputs = []
 
             except TypeError as error:
                 logging.error('invalid number of arguments (check if fb method args are in fb_type.fbt)')

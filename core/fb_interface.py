@@ -345,10 +345,17 @@ class FBInterface:
     def update_outputs(self, outputs):
         logging.info('updating the outputs...')
 
+        if outputs is None:
+            outputs = []
+
         # Converts the second part of the list to variables
         for index, var_name in enumerate(self.output_vars):
+            output_index = index + len(self.output_events)
+            if output_index >= len(outputs):
+                continue
+
             # Second part of the list delimited by the events dictionary len
-            new_value = outputs[index + len(self.output_events)]
+            new_value = outputs[output_index]
 
             # Updates the var value
             self.set_attr(var_name, new_value=new_value)
@@ -361,6 +368,8 @@ class FBInterface:
 
         # Converts the first part of the list to events
         for index, event_name in enumerate(self.output_events):
+            if index >= len(outputs):
+                continue
             value = outputs[index]
             self.set_attr(event_name, new_value=value)
             # Verifies if exist any connection
